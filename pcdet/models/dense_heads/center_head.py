@@ -383,6 +383,8 @@ class CenterHead(nn.Module):
         return rois, roi_scores, roi_labels
 
     def forward(self, data_dict):
+        import time
+        st=time.time()
         spatial_features_2d = data_dict['spatial_features_2d']
         x = self.shared_conv(spatial_features_2d)
         
@@ -428,5 +430,4 @@ class CenterHead(nn.Module):
                 data_dict['has_class_labels'] = True
             else:
                 data_dict['final_box_dicts'] = pred_dicts
-    
         return data_dict

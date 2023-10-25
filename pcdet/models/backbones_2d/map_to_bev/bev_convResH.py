@@ -27,7 +27,7 @@ class BasicBlock(nn.Module):
         return nn.ReLU(inplace=True)(self.residual(x) + self.shortcut(x))
 
 
-class BEVConvRes(nn.Module):
+class BEVConvResH(nn.Module):
     def __init__(self, model_cfg, **kwargs):
         super().__init__()
         self.block=BasicBlock
@@ -37,7 +37,7 @@ class BEVConvRes(nn.Module):
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
         self.in_channels = 64
         self.conv_layers = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False),  # 752x752
+            nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, bias=False),  # 752x752
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=3, stride=2, padding=1),  # 376x376
@@ -129,6 +129,8 @@ class BEVConvRes(nn.Module):
         
         # Compute the height difference
         bev_diff = bev_max - bev_min
+        bev_diff[torch.isnan(bev_diff)] = 0
+        bev_diff[torch.isinf(bev_diff)] = 0
         return bev_diff
 
 
@@ -143,12 +145,13 @@ class BEVConvRes(nn.Module):
                 spatial_features:
 
         """
-        bev=self.points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'])
         import time 
         st=time.time()
+        bev=self.points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'])
         batch_dict['bev']=bev
-        
+        height_bev = self.height_difference_bev(batch_dict['points'], self.point_range, batch_dict['batch_size'])
+        combined_bev = torch.cat([bev, height_bev], dim=1)
+        batch_dict['spatial_features'] = self.conv_layers(combined_bev)
         #batch_dict['gt_boxes']=self.boxes_to_bev(batch_dict['gt_boxes'],self.point_range)
         #bev=self.voxel_to_bev_batch(batch_dict['voxels'],batch_dict['voxel_coords'],batch_dict['voxel_num_points'])
-        batch_dict['spatial_features'] =self.conv_layers(bev)
         return batch_dict

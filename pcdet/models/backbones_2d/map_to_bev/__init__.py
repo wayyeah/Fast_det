@@ -4,6 +4,7 @@ from .conv2d_collapse import Conv2DCollapse
 from .bev_conv import BEVConv
 from .bev_convU import BEVConvU
 from .bev_convRes import BEVConvRes
+from .bev_convResH import BEVConvResH
 __all__ = {
     'HeightCompression': HeightCompression,
     'PointPillarScatter': PointPillarScatter,
@@ -12,4 +13,5 @@ __all__ = {
     'BEVConv':BEVConv,
     'BEVConvU':BEVConvU,
     'BEVConvRes':BEVConvRes,
+    'BEVConvResH':BEVConvResH
 }
