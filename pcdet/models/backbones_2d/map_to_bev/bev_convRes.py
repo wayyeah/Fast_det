@@ -35,16 +35,17 @@ class BEVConvRes(nn.Module):
         self.model_cfg = model_cfg
         self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
+        self.size=self.model_cfg.SIZE
         self.in_channels = 64
         self.conv_layers = nn.Sequential(
-            nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False),  # 752x752
+            nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False),  
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),  # 376x376
-            self._make_layer(self.block, 64, self.num_blocks[0], stride=1),  # 376x376
-            self._make_layer(self.block, 128, self.num_blocks[1], stride=2),  # 188x188
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),  
+            self._make_layer(self.block, 64, self.num_blocks[0], stride=1),  
+            self._make_layer(self.block, 128, self.num_blocks[1], stride=2), 
             self._make_layer(self.block, 256, self.num_blocks[2], stride=1), 
-        )# 188x188
+        )
     def _make_layer(self, block, out_channels, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
@@ -53,6 +54,7 @@ class BEVConvRes(nn.Module):
             self.in_channels = out_channels * block.expansion
         return nn.Sequential(*layers)
     def voxel_to_bev_batch(self,voxel, voxel_coords, voxel_num_points):
+        exit()
         # Ensure long type for coordinates and num_points
         voxel_coords = voxel_coords.long()
         voxel_num_points = voxel_num_points.long()
@@ -71,10 +73,10 @@ class BEVConvRes(nn.Module):
         bev[voxel_coords[mask, 0], voxel_coords[mask, 2], voxel_coords[mask, 3]] = avg_heights
 
         return F.interpolate(bev.unsqueeze(1), size=(1504, 1504), mode='bilinear', align_corners=False)
-    def points_to_bev(self,points, point_range, batch_size):
-        x_scale_factor = 1504 / (point_range[3] - point_range[0])
-        y_scale_factor = 1504 / (point_range[4] - point_range[1])
-        bev_shape = (batch_size, 1, 1504, 1504)
+    def points_to_bev(self,points, point_range, batch_size,size):
+        x_scale_factor = size[0]/ (point_range[3] - point_range[0])
+        y_scale_factor = size[1]/ (point_range[4] - point_range[1])
+        bev_shape = (batch_size, 1, size[0] , size[1] )
         bev = torch.zeros(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if(point_range[0]==0):
             x_pixel_values = ((points[:, 1] ) * x_scale_factor).to(torch.int)
@@ -83,7 +85,7 @@ class BEVConvRes(nn.Module):
         y_pixel_values = ((points[:, 2] + (point_range[4] - point_range[1]) / 2) * y_scale_factor).to(torch.int)
         z_values = points[:, 3]
         z_values_normalized = (z_values - z_values.min()) / (z_values.max() - z_values.min())
-        mask = (x_pixel_values < 1504) & (x_pixel_values >= 0) & (y_pixel_values < 1504) & (y_pixel_values >= 0)
+        mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
         batch_indices = points[mask, 0].long()
         x_indices = x_pixel_values[mask]
         y_indices = y_pixel_values[mask]
@@ -99,6 +101,7 @@ class BEVConvRes(nn.Module):
         return bboxes_3d               
         
     def height_difference_bev(self, points, point_range, batch_size):
+        exit()
         x_scale_factor = 1504 / (point_range[3] - point_range[0])
         y_scale_factor = 1504 / (point_range[4] - point_range[1])
         z_scale_factor=255/(point_range[5]-point_range[2])
@@ -143,11 +146,11 @@ class BEVConvRes(nn.Module):
                 spatial_features:
 
         """
-        bev=self.points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'])
+        bev=self.points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
         import time 
+        import numpy as np
         st=time.time()
         batch_dict['bev']=bev
-        
         #batch_dict['gt_boxes']=self.boxes_to_bev(batch_dict['gt_boxes'],self.point_range)
         #bev=self.voxel_to_bev_batch(batch_dict['voxels'],batch_dict['voxel_coords'],batch_dict['voxel_num_points'])
         batch_dict['spatial_features'] =self.conv_layers(bev)

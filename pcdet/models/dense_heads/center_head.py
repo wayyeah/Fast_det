@@ -121,10 +121,11 @@ class CenterHead(nn.Module):
         mask = gt_boxes.new_zeros(num_max_objs).long()
         ret_boxes_src = gt_boxes.new_zeros(num_max_objs, gt_boxes.shape[-1])
         ret_boxes_src[:gt_boxes.shape[0]] = gt_boxes
-
         x, y, z = gt_boxes[:, 0], gt_boxes[:, 1], gt_boxes[:, 2]
+       
         coord_x = (x - self.point_cloud_range[0]) / self.voxel_size[0] / feature_map_stride
         coord_y = (y - self.point_cloud_range[1]) / self.voxel_size[1] / feature_map_stride
+       
         coord_x = torch.clamp(coord_x, min=0, max=feature_map_size[0] - 0.5)  # bugfixed: 1e-6 does not work for center.int()
         coord_y = torch.clamp(coord_y, min=0, max=feature_map_size[1] - 0.5)  #
         center = torch.cat((coord_x[:, None], coord_y[:, None]), dim=-1)
@@ -400,7 +401,14 @@ class CenterHead(nn.Module):
             self.forward_ret_dict['target_dicts'] = target_dict
 
         self.forward_ret_dict['pred_dicts'] = pred_dicts
-        """ t=target_dict
+        
+        """ ##
+        target_dict = self.assign_targets(
+                data_dict['gt_boxes'], feature_map_size=spatial_features_2d.size()[2:],
+                feature_map_stride=data_dict.get('spatial_features_2d_strides', None)
+            )
+        self.forward_ret_dict['target_dicts'] = target_dict
+        t=target_dict
         p=pred_dicts
        
         x={}
@@ -412,11 +420,12 @@ class CenterHead(nn.Module):
             for key, value in item.items():
                 if isinstance(value, torch.Tensor):
                     item[key] = value.cpu().detach().numpy()
-        np.save('/mnt/16THDD/yw/fast_det/target.npy', x)
-        np.save('/mnt/16THDD/yw/fast_det/pred.npy',p)
-        np.save('/mnt/16THDD/yw/fast_det/points.npy', data_dict['points'].cpu().detach().numpy())
-        np.save('/mnt/16THDD/yw/fast_det/gt_boxes.npy', data_dict['gt_boxes'].cpu().detach().numpy())
-        exit() """
+        np.save('/home/xmu/yw/Fast_det/target.npy', x)
+        np.save('/home/xmu/yw/Fast_det/pred.npy',p)
+        np.save('/home/xmu/yw/Fast_det/points.npy', data_dict['points'].cpu().detach().numpy())
+        np.save('/home/xmu/yw/Fast_det/gt_boxes.npy', data_dict['gt_boxes'].cpu().detach().numpy())
+        np.save('/home/xmu/yw/Fast_det/bev.npy', data_dict['bev'].cpu().detach().numpy())
+        #exit() """
         if not self.training or self.predict_boxes_when_training:
             pred_dicts = self.generate_predicted_boxes(
                 data_dict['batch_size'], pred_dicts
