@@ -37,7 +37,7 @@ __all__ = {
     'TransFusion': TransFusion,
     'BevFusion': BevFusion,
     'Fast':Fast,
-    'Fast_TS':FastTS,   
+    'FastTS':FastTS,   
 }
 
 

@@ -5,6 +5,7 @@ class FastTS(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
         super().__init__(model_cfg=model_cfg, num_class=num_class, dataset=dataset)
         self.module_list = self.build_networks()
+        
 
     def forward(self, batch_dict):
         for cur_module in self.module_list:
@@ -22,8 +23,9 @@ class FastTS(Detector3DTemplate):
 
     def get_training_loss(self):
         disp_dict = {}
-
-        loss_backbone, tb_dict = self.build_backbone_3d.get_loss()
+        
+       
+        loss_backbone, tb_dict = self.map_to_bev_module.get_loss()
         tb_dict = {
             'loss_backbone': loss_backbone.item(),
             **tb_dict
