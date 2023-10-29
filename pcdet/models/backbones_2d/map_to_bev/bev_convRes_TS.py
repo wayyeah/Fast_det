@@ -167,9 +167,9 @@ class BEVConvResTS(nn.Module):
         self.teacher_bev_features=teacher_bev
         self.our_bev_features=batch_dict['spatial_features']
         ''' np.save("/home/xmu/yw/Fast_det/bev.npy",batch_dict['spatial_features'].cpu().detach().numpy())
-        np.save("/home/xmu/yw/Fast_det/teacher_bev.npy",teacher_bev.cpu().detach().numpy()) '''
+        np.save("/home/xmu/yw/Fast_det/teacher_bev.npy",teacher_bev.cpu().detach().numpy())
         
-        #exit()
+        exit() '''
         return batch_dict
     def get_loss(self):
         tb_dict = {}

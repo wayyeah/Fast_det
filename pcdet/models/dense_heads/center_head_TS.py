@@ -237,11 +237,9 @@ class CenterHeadTS(nn.Module):
         y = torch.clamp(x.sigmoid(), min=1e-4, max=1 - 1e-4)
         return y
 
-    def get_loss(self):
+    def get_loss(self,tb_dict):
         pred_dicts = self.forward_ret_dict['pred_dicts']
         target_dicts = self.forward_ret_dict['target_dicts']
-
-        tb_dict = {}
         loss = 0
 
         for idx, pred_dict in enumerate(pred_dicts):
