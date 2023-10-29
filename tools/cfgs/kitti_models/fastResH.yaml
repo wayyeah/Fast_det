@@ -15,7 +15,7 @@ MODEL:
         NAME: BEVConvResH
         NUM_BEV_FEATURES: 256
         POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
-
+        SIZE : [1504,1504]
     BACKBONE_2D:
         NAME: BaseBEVBackbone
 

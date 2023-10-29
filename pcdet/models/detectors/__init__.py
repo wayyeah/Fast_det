@@ -16,6 +16,7 @@ from .voxelnext import VoxelNeXt
 from .transfusion import TransFusion
 from .bevfusion import BevFusion
 from .fast import Fast
+from .fast_TS import FastTS
 __all__ = {
     'Detector3DTemplate': Detector3DTemplate,
     'SECONDNet': SECONDNet,
@@ -36,6 +37,7 @@ __all__ = {
     'TransFusion': TransFusion,
     'BevFusion': BevFusion,
     'Fast':Fast,
+    'Fast_TS':FastTS,   
 }
 
 

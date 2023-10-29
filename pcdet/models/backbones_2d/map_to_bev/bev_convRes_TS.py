@@ -2,7 +2,8 @@ import torch.nn as nn
 import numpy as np
 import torch 
 import torch.nn.functional as F
-
+from pcdet.models.backbones_3d import VoxelResBackBone8x
+from pcdet.models.backbones_2d.map_to_bev import HeightCompression
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -27,7 +28,7 @@ class BasicBlock(nn.Module):
         return nn.ReLU(inplace=True)(self.residual(x) + self.shortcut(x))
 
 
-class BEVConvResH(nn.Module):
+class BEVConvResTS(nn.Module):
     def __init__(self, model_cfg, **kwargs):
         super().__init__()
         self.block=BasicBlock
@@ -35,16 +36,26 @@ class BEVConvResH(nn.Module):
         self.model_cfg = model_cfg
         self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
+        self.size=self.model_cfg.SIZE
         self.in_channels = 64
         self.conv_layers = nn.Sequential(
-            nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, bias=False),  # 752x752
+            nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False),  
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),  # 376x376
-            self._make_layer(self.block, 64, self.num_blocks[0], stride=1),  # 376x376
-            self._make_layer(self.block, 128, self.num_blocks[1], stride=2),  # 188x188
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),  
+            self._make_layer(self.block, 64, self.num_blocks[0], stride=1),  
+            self._make_layer(self.block, 128, self.num_blocks[1], stride=2), 
             self._make_layer(self.block, 256, self.num_blocks[2], stride=1), 
-        )# 188x188
+        )
+        self.map_to_bev=HeightCompression(self.model_cfg)
+        self.backbone_3d = VoxelResBackBone8x({'NAME':'VoxelResBackBone8x'},4,np.array([1408,1600,40]))
+        checkpoint = torch.load('/home/xmu/yw/Fast_det/output/kitti_models/centerpoint/baseline/ckpt/checkpoint_epoch_80.pth')['model_state']
+        backbone_3d_weights = {k.replace('backbone_3d.', ''): v for k, v in checkpoint.items() if 'backbone_3d' in k}
+        self.backbone_3d.load_state_dict(backbone_3d_weights, strict=False)
+        for param in self.backbone_3d.parameters():
+            param.requires_grad = False
+
+   
     def _make_layer(self, block, out_channels, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
@@ -53,6 +64,7 @@ class BEVConvResH(nn.Module):
             self.in_channels = out_channels * block.expansion
         return nn.Sequential(*layers)
     def voxel_to_bev_batch(self,voxel, voxel_coords, voxel_num_points):
+        exit()
         # Ensure long type for coordinates and num_points
         voxel_coords = voxel_coords.long()
         voxel_num_points = voxel_num_points.long()
@@ -75,6 +87,7 @@ class BEVConvResH(nn.Module):
         x_scale_factor = size[0]/ (point_range[3] - point_range[0])
         y_scale_factor = size[1]/ (point_range[4] - point_range[1])
         bev_shape = (batch_size, 1, size[1] , size[0] )
+        
         bev = torch.zeros(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if(point_range[0]==0):
             x_pixel_values = ((points[:, 1] ) * x_scale_factor).to(torch.int)
@@ -84,14 +97,12 @@ class BEVConvResH(nn.Module):
         z_values = points[:, 3]
         z_values_normalized = (z_values - z_values.min()) / (z_values.max() - z_values.min())
         mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
-        batch_indices = points[mask, 0].long()
+        batch_indices = points[mask, 0].int()
         x_indices = x_pixel_values[mask]
         y_indices = y_pixel_values[mask]
-        z_vals = z_values_normalized[mask]
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+        z_vals = z_values_normalized[mask]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
         bev[batch_indices, 0, y_indices, x_indices] = torch.maximum(bev[batch_indices, 0, y_indices, x_indices], z_vals)
         return bev
-
 
     def boxes_to_bev(self, bboxes_3d, point_range):
         bboxes_3d[:,:,0]+=(point_range[3] - point_range[0]) / 2
@@ -100,6 +111,7 @@ class BEVConvResH(nn.Module):
         return bboxes_3d               
         
     def height_difference_bev(self, points, point_range, batch_size):
+        exit()
         x_scale_factor = 1504 / (point_range[3] - point_range[0])
         y_scale_factor = 1504 / (point_range[4] - point_range[1])
         z_scale_factor=255/(point_range[5]-point_range[2])
@@ -130,8 +142,6 @@ class BEVConvResH(nn.Module):
         
         # Compute the height difference
         bev_diff = bev_max - bev_min
-        bev_diff[torch.isnan(bev_diff)] = 0
-        bev_diff[torch.isinf(bev_diff)] = 0
         return bev_diff
 
 
@@ -146,13 +156,25 @@ class BEVConvResH(nn.Module):
                 spatial_features:
 
         """
+        bev=self.points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
         import time 
         st=time.time()
-        bev=self.points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'])
         batch_dict['bev']=bev
-        height_bev = self.height_difference_bev(batch_dict['points'], self.point_range, batch_dict['batch_size'])
-        combined_bev = torch.cat([bev, height_bev], dim=1)
-        batch_dict['spatial_features'] = self.conv_layers(combined_bev)
         #batch_dict['gt_boxes']=self.boxes_to_bev(batch_dict['gt_boxes'],self.point_range)
         #bev=self.voxel_to_bev_batch(batch_dict['voxels'],batch_dict['voxel_coords'],batch_dict['voxel_num_points'])
+        teacher_bev=self.map_to_bev(self.backbone_3d(batch_dict))['spatial_features']
+        batch_dict['spatial_features'] =self.conv_layers(bev)
+        self.teacher_bev_features=teacher_bev
+        self.our_bev_features=batch_dict['spatial_features']
+        ''' np.save("/home/xmu/yw/Fast_det/bev.npy",batch_dict['spatial_features'].cpu().detach().numpy())
+        np.save("/home/xmu/yw/Fast_det/teacher_bev.npy",teacher_bev.cpu().detach().numpy()) '''
+        
+        #exit()
         return batch_dict
+    def get_loss(self):
+        tb_dict = {}
+        loss = 0
+        l1_loss = nn.L1Loss()
+        loss=loss+l1_loss(self.our_bev_features,self.teacher_bev_features)
+        tb_dict['loss_backbone'] = loss.item()
+        return loss, tb_dict
