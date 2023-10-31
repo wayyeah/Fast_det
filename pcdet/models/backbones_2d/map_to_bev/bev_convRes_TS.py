@@ -182,6 +182,7 @@ class BEVConvResTS(nn.Module):
         tb_dict = {}
         loss = 0
         l1_loss = nn.L1Loss()
-        loss=loss+l1_loss(self.our_bev_features,self.teacher_bev_features)
+        mse_loss = nn.MSELoss()
+        loss=mse_loss(self.our_bev_features,self.teacher_bev_features)+l1_loss(self.our_bev_features,self.teacher_bev_features)
         tb_dict['loss_backbone'] = loss.item()
         return loss, tb_dict

@@ -542,7 +542,7 @@ def eval_class(gt_annos,
                 for i in range(len(thresholds)):
                     precision[m, l, k, i] = np.max(
                         precision[m, l, k, i:], axis=-1)
-                    recall[m, l, k, i] = np.max(recall[m, l, k, i:], axis=-1)
+                    #recall[m, l, k, i] = np.max(recall[m, l, k, i:], axis=-1)
                     if compute_aos:
                         aos[m, l, k, i] = np.max(aos[m, l, k, i:], axis=-1)
     ret_dict = {
@@ -615,6 +615,8 @@ def do_eval(gt_annos,
     mAP_3d_R40 = get_mAP_R40(ret["precision"])
     if PR_detail_dict is not None:
         PR_detail_dict['3d'] = ret['precision']
+    #print(ret["recall"][0][1])
+    #print(ret["precision"][0][1])
     return mAP_bbox, mAP_bev, mAP_3d, mAP_aos, mAP_bbox_R40, mAP_bev_R40, mAP_3d_R40, mAP_aos_R40
 
 

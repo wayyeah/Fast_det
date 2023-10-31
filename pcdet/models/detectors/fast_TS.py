@@ -24,9 +24,9 @@ class FastTS(Detector3DTemplate):
     def get_training_loss(self):
         disp_dict = {}
         loss_backbone, tb_dict = self.map_to_bev_module.get_loss()
-        loss_rpn, tb_dict = self.dense_head.get_loss()
+        loss_rpn, tb_dict = self.dense_head.get_loss(tb_dict)
         loss = loss_backbone*100+loss_rpn
-        #print('loss_backbone:',loss_backbone*100,'loss_rpn:',loss_rpn)
+        #print('loss_backbone:',loss_backbone,'loss_rpn:',loss_rpn)
         return loss, tb_dict, disp_dict
 
     def post_processing(self, batch_dict):
