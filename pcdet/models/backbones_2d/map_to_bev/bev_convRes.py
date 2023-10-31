@@ -77,7 +77,7 @@ class BEVConvRes(nn.Module):
         x_scale_factor = size[0]/ (point_range[3] - point_range[0])
         y_scale_factor = size[1]/ (point_range[4] - point_range[1])
         bev_shape = (batch_size, 1, size[1] , size[0] )
-        bev = torch.zeros(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        bev = torch.ones(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))*-10
         if(point_range[0]==0):
             x_pixel_values = ((points[:, 1] ) * x_scale_factor).to(torch.int)
         else:    
@@ -89,8 +89,8 @@ class BEVConvRes(nn.Module):
         batch_indices = points[mask, 0].long()
         x_indices = x_pixel_values[mask]
         y_indices = y_pixel_values[mask]
-        z_vals = z_values_normalized[mask]
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+        #z_vals = z_values_normalized[mask]
+        z_vals=z_values[mask] #取消z正则化                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
         bev[batch_indices, 0, y_indices, x_indices] = torch.maximum(bev[batch_indices, 0, y_indices, x_indices], z_vals)
         return bev
 
@@ -153,5 +153,7 @@ class BEVConvRes(nn.Module):
         batch_dict['bev']=bev
         #batch_dict['gt_boxes']=self.boxes_to_bev(batch_dict['gt_boxes'],self.point_range)
         #bev=self.voxel_to_bev_batch(batch_dict['voxels'],batch_dict['voxel_coords'],batch_dict['voxel_num_points'])
+        ''' np.save("/home/xmu/yw/Fast_det/bev.npy",bev.cpu().numpy())
+        exit() '''
         batch_dict['spatial_features'] =self.conv_layers(bev)
         return batch_dict

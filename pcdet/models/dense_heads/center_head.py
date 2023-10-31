@@ -402,7 +402,7 @@ class CenterHead(nn.Module):
 
         self.forward_ret_dict['pred_dicts'] = pred_dicts
         
-        """ ##
+        ''' ##
         target_dict = self.assign_targets(
                 data_dict['gt_boxes'], feature_map_size=spatial_features_2d.size()[2:],
                 feature_map_stride=data_dict.get('spatial_features_2d_strides', None)
@@ -425,7 +425,8 @@ class CenterHead(nn.Module):
         np.save('/home/xmu/yw/Fast_det/points.npy', data_dict['points'].cpu().detach().numpy())
         np.save('/home/xmu/yw/Fast_det/gt_boxes.npy', data_dict['gt_boxes'].cpu().detach().numpy())
         np.save('/home/xmu/yw/Fast_det/bev.npy', data_dict['bev'].cpu().detach().numpy())
-        #exit() """
+        #exit() '''
+        
         if not self.training or self.predict_boxes_when_training:
             pred_dicts = self.generate_predicted_boxes(
                 data_dict['batch_size'], pred_dicts
@@ -439,4 +440,18 @@ class CenterHead(nn.Module):
                 data_dict['has_class_labels'] = True
             else:
                 data_dict['final_box_dicts'] = pred_dicts
+        #t=target_dict
+        ''' p=pred_dicts
+       
+        
+                
+        for item in p:
+            for key, value in item.items():
+                if isinstance(value, torch.Tensor):
+                    item[key] = value.cpu().detach().numpy()
+        #np.save('/home/xmu/yw/Fast_det/target.npy', x)
+        np.save('/home/xmu/yw/Fast_det/pred.npy',p)
+        np.save('/home/xmu/yw/Fast_det/points.npy', data_dict['points'].cpu().detach().numpy())
+        np.save('/home/xmu/yw/Fast_det/gt_boxes.npy', data_dict['gt_boxes'].cpu().detach().numpy())
+        np.save('/home/xmu/yw/Fast_det/bev.npy', data_dict['bev'].cpu().detach().numpy()) '''
         return data_dict
