@@ -8,7 +8,7 @@ def read_pkl(pkl_path):
     return data
 
 gt_path='/home/xmu/yw/Fast_det/data/kitti/kitti_infos_val.pkl'
-result_path='/home/xmu/yw/Fast_det/output/kitti_models/fastRes/z_without_norm/eval/eval_with_train/epoch_80/val/result.pkl'
+result_path=None
 try:
     gt_pkl=read_pkl(gt_path)
 except:
