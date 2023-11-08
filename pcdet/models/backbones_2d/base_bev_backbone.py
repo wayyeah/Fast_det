@@ -108,7 +108,6 @@ class BaseBEVBackbone(nn.Module):
             x = self.deblocks[-1](x)
 
         data_dict['spatial_features_2d'] = x
-
         return data_dict
 
 

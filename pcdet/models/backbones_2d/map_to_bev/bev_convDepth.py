@@ -2,7 +2,8 @@ import torch.nn as nn
 import numpy as np
 import torch 
 import torch.nn.functional as F
-class BEVConv(nn.Module):
+
+class BEVConvDepth(nn.Module):
     def __init__(self, model_cfg, **kwargs):
         super().__init__()
         self.model_cfg = model_cfg
@@ -10,24 +11,30 @@ class BEVConv(nn.Module):
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
         self.size=self.model_cfg.SIZE
         self.conv_layers = nn.Sequential(
-            # Initial convolution to increase channels
+            # Existing layers
             nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(64),  # BatchNorm layer added
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
             
-            # Further convolutions to reduce spatial dimensions and increase channels
+            # Additional layers to make the network deeper
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
             nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(128),  # BatchNorm layer added
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(128, self.num_bev_features, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(self.num_bev_features),  # BatchNorm layer added
+            nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
             
-            # Add more layers as necessary to reach the desired output shape
+            # Rest of the existing layers
+            nn.Conv2d(128, self.num_bev_features, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(self.num_bev_features),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            
+            # More layers can be added here
         )
+
 
     
 
