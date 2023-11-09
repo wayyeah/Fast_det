@@ -7,6 +7,7 @@ from .bev_convRes import BEVConvRes
 from .bev_convResH import BEVConvResH
 from .bev_convRes_TS import BEVConvResTS
 from .bev_convI import BEVConvI
+from .bev_convDepth import BEVConvDepth
 __all__ = {
     'HeightCompression': HeightCompression,
     'PointPillarScatter': PointPillarScatter,
@@ -18,4 +19,5 @@ __all__ = {
     'BEVConvResH':BEVConvResH,
     'BEVConvResTS':BEVConvResTS,
     'BEVConvI':BEVConvI,
+    'BEVConvDepth':BEVConvDepth
 }
