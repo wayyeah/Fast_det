@@ -33,8 +33,8 @@ class BEVConvWise(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
             
-            DepthwiseSeparableConv(128, num_bev_features, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(num_bev_features),
+            DepthwiseSeparableConv(128, self.num_bev_features, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
         )

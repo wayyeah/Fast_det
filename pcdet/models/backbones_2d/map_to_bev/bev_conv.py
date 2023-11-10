@@ -21,6 +21,7 @@ class BEVConv(nn.Module):
             nn.BatchNorm2d(128),  # BatchNorm layer added
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
+            
             nn.Conv2d(128, self.num_bev_features, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(self.num_bev_features),  # BatchNorm layer added
             nn.ReLU(),

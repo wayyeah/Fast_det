@@ -10,28 +10,37 @@ class BEVConvDepth(nn.Module):
         self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
         self.size=self.model_cfg.SIZE
+        #1*1*1600*1408
         self.conv_layers = nn.Sequential(
             # Existing layers
             nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=1),
+            #1*64*1600*1408
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            
+            #1*64*800*704
             # Additional layers to make the network deeper
+            #1*64*800*704
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
+            #1*128*800*704,
             nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            
+            #1*128*400*352,
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            #nn.MaxPool2d(kernel_size=2, stride=2),
+            #1*128*200*176,
             # Rest of the existing layers
             nn.Conv2d(128, self.num_bev_features, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            
+            #1*256*100*88,
             # More layers can be added here
         )
 
