@@ -8,7 +8,7 @@ from .bev_convResH import BEVConvResH
 from .bev_convRes_TS import BEVConvResTS
 from .bev_convI import BEVConvI
 from .bev_convDepth import BEVConvDepth 
-from .bev_convWise import BEVConvWise,BEVConvWiseV2,BEVConvWiseV3
+from .bev_convWise import BEVConvWise,BEVConvWiseV2,BEVConvWiseV3,BEVConvWiseWithI
 
 __all__ = {
     'HeightCompression': HeightCompression,
@@ -25,4 +25,5 @@ __all__ = {
     'BEVConvWise':BEVConvWise,
     'BEVConvWiseV2':BEVConvWiseV2,
     'BEVConvWiseV3':BEVConvWiseV3,
+    'BEVConvWiseWithI':BEVConvWiseWithI,
 }
