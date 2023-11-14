@@ -33,7 +33,7 @@ class BEVConvDepth(nn.Module):
             nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
-            #nn.MaxPool2d(kernel_size=2, stride=2),
+
             #1*128*200*176,
             # Rest of the existing layers
             nn.Conv2d(128, self.num_bev_features, kernel_size=3, stride=1, padding=1),
