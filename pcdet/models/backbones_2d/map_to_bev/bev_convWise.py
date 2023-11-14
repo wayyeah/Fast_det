@@ -198,7 +198,7 @@ class BEVConvWiseV2(nn.Module):
         batch_dict['spatial_features'] =self.conv_layers(bev)
         return batch_dict
     
-class BEVConvWiseV2(nn.Module):
+class BEVConvWiseV3(nn.Module):
     def __init__(self, model_cfg, **kwargs):
         super().__init__()
         self.model_cfg = model_cfg
