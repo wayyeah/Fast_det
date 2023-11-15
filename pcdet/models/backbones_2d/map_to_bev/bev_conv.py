@@ -57,7 +57,7 @@ class BEVConv(nn.Module):
         x_scale_factor = size[0]/ (point_range[3] - point_range[0])
         y_scale_factor = size[1]/ (point_range[4] - point_range[1])
         bev_shape = (batch_size, 1, size[1] , size[0] )
-        bev = torch.ones(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))*-10
+        bev = torch.zeros(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
         if(point_range[0]==0):
             x_pixel_values = ((points[:, 1] ) * x_scale_factor).to(torch.int)
         else:    
