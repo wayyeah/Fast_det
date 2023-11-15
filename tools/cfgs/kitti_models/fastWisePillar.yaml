@@ -14,8 +14,8 @@ MODEL:
     MAP_TO_BEV:
         NAME: BEVConvWisePillar
         NUM_BEV_FEATURES: 64
-        POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
-        SIZE : [1408,1600]
+        POINT_CLOUD_RANGE:  [0, -39.68, -3, 69.12, 39.68, 1]
+        SIZE : [864,992]
     BACKBONE_2D:
         NAME: BaseBEVBackbone
 
@@ -41,7 +41,7 @@ MODEL:
                 'anchor_rotations': [0, 1.57],
                 'anchor_bottom_heights': [-1.78],
                 'align_center': False,
-                'feature_map_stride': 8,
+                'feature_map_stride': 2,
                 'matched_threshold': 0.6,
                 'unmatched_threshold': 0.45
             },
@@ -51,7 +51,7 @@ MODEL:
                 'anchor_rotations': [0, 1.57],
                 'anchor_bottom_heights': [-0.6],
                 'align_center': False,
-                'feature_map_stride': 8,
+                'feature_map_stride': 2,
                 'matched_threshold': 0.5,
                 'unmatched_threshold': 0.35
             },
@@ -61,7 +61,7 @@ MODEL:
                 'anchor_rotations': [0, 1.57],
                 'anchor_bottom_heights': [-0.6],
                 'align_center': False,
-                'feature_map_stride': 8,
+                'feature_map_stride': 2,
                 'matched_threshold': 0.5,
                 'unmatched_threshold': 0.35
             }
