@@ -525,7 +525,7 @@ class BEVConvWiseWithIV3(nn.Module):
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
-            nn.Conv2d(8, 32, kernel_size=3, stride=1, padding=1, groups=32),
+            nn.Conv2d(8, 32, kernel_size=3, stride=1, padding=1, groups=8),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*32*400*352
@@ -534,10 +534,10 @@ class BEVConvWiseWithIV3(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(),
             # Final layers
-            nn.Conv2d(128, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*256*400*352
+            nn.Conv2d(128, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2), #b*256*200*176
+            nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
         )
 
     def forward(self, batch_dict):
@@ -565,22 +565,22 @@ class BEVConvWisePillar(nn.Module):
         self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
         self.size=self.model_cfg.SIZE
-        #1*1*1600*1408
+        #1*2*1488*1296
         self.conv_layers = nn.Sequential(
             # Existing layers
-            nn.Conv2d(2, 64, kernel_size=3, stride=1, padding=1), #b*64*1600*1408
+            nn.Conv2d(2, 64, kernel_size=3, stride=1, padding=1), #b*64*1488*1296
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),#b*64*800*704
+            nn.MaxPool2d(kernel_size=2, stride=2),#b*64*744*648
             nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, groups=64),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),  #b*64*400*352
+            nn.MaxPool2d(kernel_size=2, stride=2),  #b*64*372*324
             # Depthwise separable convolution
             DepthwiseSeparableConv(64, self.num_bev_features, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2), #b*64*200*176
+            nn.MaxPool2d(kernel_size=2, stride=2), #b*64*186*162
         )
 
 
