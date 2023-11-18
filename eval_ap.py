@@ -2,12 +2,18 @@ from pcdet.datasets.kitti.kitti_object_eval_python import eval as kitti_eval
 import copy
 import numpy as np
 import pickle
+from numba import cuda
+import warnings
+from numba.core.errors import NumbaPerformanceWarning
+
+# Suppress only NumbaPerformanceWarning
+warnings.filterwarnings('ignore', category=NumbaPerformanceWarning)
 def read_pkl(pkl_path):
     with open(pkl_path, 'rb') as f:
         data = pickle.load(f)
     return data
 
-gt_path='/home/xmu/yw/Fast_det/data/kitti/kitti_infos_val.pkl'
+gt_path='/mnt/4tssd1/yw/Fast_det/data/kitti/kitti_infos_val.pkl'
 result_path=None
 try:
     gt_pkl=read_pkl(gt_path)
@@ -23,7 +29,6 @@ if gt_path is None:
 if result_path is None:
     print("输入result路径")
     result_path=input()
-iou_set={'Car': 0.1,'Pedestrian': 0.1,'Cyclist': 0.1}
 
 
 class_names=['Car','Pedestrian','Cyclist']
