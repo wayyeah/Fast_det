@@ -11,12 +11,12 @@ MODEL:
 
 
     MAP_TO_BEV:
-        NAME: BEVConvWiseWithIV7
-        NUM_BEV_FEATURES: 8
+        NAME: BEVConvWiseWithIV8
+        NUM_BEV_FEATURES: 16
         POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
         SIZE : [1408,1600]
     BACKBONE_2D:
-        NAME: BaseBEVBackbone
+        NAME: BaseBEVBackboneWise
 
         LAYER_NUMS: [5, 5]
         LAYER_STRIDES: [1, 2]
