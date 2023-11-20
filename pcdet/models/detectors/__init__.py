@@ -15,8 +15,9 @@ from .pillarnet import PillarNet
 from .voxelnext import VoxelNeXt
 from .transfusion import TransFusion
 from .bevfusion import BevFusion
-from .fast import Fast,FastIOU
+from .fast import Fast,FastIOU,FastCenter
 from .fast_TS import FastTS
+
 __all__ = {
     'Detector3DTemplate': Detector3DTemplate,
     'SECONDNet': SECONDNet,
@@ -39,6 +40,8 @@ __all__ = {
     'Fast':Fast,
     'FastTS':FastTS,   
     'FastIOU':FastIOU,
+    'FastCenter':FastCenter
+    
 }
 
 

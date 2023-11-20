@@ -49,7 +49,7 @@ DATA_CONFIG:
 
 
 MODEL:
-    NAME: Fast
+    NAME: FastCenter
 
     VFE:
         NAME: MeanVFE
