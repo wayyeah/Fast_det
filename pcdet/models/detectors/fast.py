@@ -154,13 +154,6 @@ class FastTwo(Detector3DTemplate):
         loss_rpn, tb_dict = self.dense_head.get_loss()
         loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)
         loss = loss_rpn + loss_rcnn
-        tb_dict = {
-            'loss_rpn': loss_rpn.item(),
-            'loss_rcnn':loss_rcnn.item()
-            **tb_dict
-        }
-
-        loss = loss_rpn
         return loss, tb_dict, disp_dict
     @staticmethod
     def cal_scores_by_npoints(cls_scores, iou_scores, num_points_in_gt, cls_thresh=10, iou_thresh=100):
