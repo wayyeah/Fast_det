@@ -1,6 +1,7 @@
 from .detector3d_template import Detector3DTemplate
 import time
-
+import torch
+from pcdet.utils.bbloss import bb_loss
 class Fast(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
         super().__init__(model_cfg=model_cfg, num_class=num_class, dataset=dataset)
@@ -43,10 +44,19 @@ class FastIOU(Detector3DTemplate):
             batch_dict = cur_module(batch_dict)
         if self.training:
             loss, tb_dict, disp_dict = self.get_training_loss()
+            st=time.time()
+            pred_dicts, recall_dicts = self.post_processing(batch_dict)
             
-            print(batch_dict.keys())
-            exit()
-            loss+=bb_loss(pred_dicts['pred_boxes'],batch_dict['gt_boxes'])
+            max_size = max(pred_dict['pred_boxes'].shape[0] for pred_dict in pred_dicts)
+            padded_boxes = []
+            for pred_dict in pred_dicts:
+                padding_size = max_size - pred_dict['pred_boxes'].shape[0]
+                padded_box = torch.nn.functional.pad(pred_dict['pred_boxes'], (0, 0, 0, padding_size), "constant", 0)
+                padded_boxes.append(padded_box)
+            batched_preds_boxes = torch.stack(padded_boxes)
+            for i in range(len(pred_dicts)):
+                loss+=bb_loss( batched_preds_boxes[i],batch_dict['gt_boxes'][i])
+            print("loos time:",time.time()-st)
             ret_dict = {
                 'loss': loss
             }
