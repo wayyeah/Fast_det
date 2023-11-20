@@ -8,6 +8,7 @@ class Fast(Detector3DTemplate):
         self.module_list = self.build_networks()
 
     def forward(self, batch_dict):
+        batch_dict['dataset_cfg'] = self.dataset.dataset_cfg
         for cur_module in self.module_list:
             batch_dict = cur_module(batch_dict)
         if self.training:
