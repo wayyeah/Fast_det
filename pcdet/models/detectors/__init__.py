@@ -15,7 +15,7 @@ from .pillarnet import PillarNet
 from .voxelnext import VoxelNeXt
 from .transfusion import TransFusion
 from .bevfusion import BevFusion
-from .fast import Fast,FastIOU,FastCenter
+from .fast import Fast,FastIOU,FastCenter,FastTwo
 from .fast_TS import FastTS
 
 __all__ = {
@@ -40,7 +40,8 @@ __all__ = {
     'Fast':Fast,
     'FastTS':FastTS,   
     'FastIOU':FastIOU,
-    'FastCenter':FastCenter
+    'FastCenter':FastCenter,
+    'FastTwo':FastTwo,
     
 }
 

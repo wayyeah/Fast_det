@@ -4,7 +4,7 @@ DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/kitti_dataset.yaml
 
 MODEL:
-    NAME: Fast
+    NAME: FastTwo
 
     VFE:
         NAME: MeanVFE
