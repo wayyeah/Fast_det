@@ -152,8 +152,11 @@ class FastTwo(Detector3DTemplate):
         disp_dict = {}
 
         loss_rpn, tb_dict = self.dense_head.get_loss()
+        loss_rcnn, tb_dict = self.roi_head.get_loss(tb_dict)
+        loss = loss_rpn + loss_rcnn
         tb_dict = {
             'loss_rpn': loss_rpn.item(),
+            'loss_rcnn':loss_rcnn.item()
             **tb_dict
         }
 
@@ -282,7 +285,6 @@ class FastTwo(Detector3DTemplate):
                 final_scores = selected_scores
                 final_labels = label_preds[selected]
                 final_boxes = box_preds[selected]
-
             recall_dict = self.generate_recall_record(
                 box_preds=final_boxes if 'rois' not in batch_dict else src_box_preds,
                 recall_dict=recall_dict, batch_index=index, data_dict=batch_dict,
