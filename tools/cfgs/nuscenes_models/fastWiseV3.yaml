@@ -57,8 +57,8 @@ MODEL:
     
 
     MAP_TO_BEV:
-        NAME: BEVConvWiseV3
-        NUM_BEV_FEATURES: 256
+        NAME: BEVConvWiseWithIV4
+        NUM_BEV_FEATURES: 64
         POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
         SIZE: [1024,1024]
     BACKBONE_2D:
@@ -127,7 +127,7 @@ MODEL:
 
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 4
+    BATCH_SIZE_PER_GPU: 16
     NUM_EPOCHS: 30
 
     OPTIMIZER: adam_onecycle
