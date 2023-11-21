@@ -145,8 +145,11 @@ class FastHead(RoIHeadTemplate):
         rcnn_box=self.reg_layers(shared_features).transpose(1, 2).contiguous().squeeze(dim=1)  # (B*N, 7)
         
         if not self.training:
-            batch_dict['batch_cls_preds'] = rcnn_iou.view(batch_dict['batch_size'], -1, rcnn_iou.shape[-1])
-            batch_dict['batch_box_preds'] = batch_dict['rois']
+            batch_cls_preds, batch_box_preds = self.generate_predicted_boxes(
+                batch_size=batch_dict['batch_size'], rois=batch_dict['rois'], cls_preds=rcnn_iou, box_preds=rcnn_box
+            )
+            batch_dict['batch_cls_preds'] = batch_cls_preds
+            batch_dict['batch_box_preds'] = batch_box_preds
             batch_dict['cls_preds_normalized'] = False
         else:
             targets_dict['rcnn_cls'] = rcnn_iou
