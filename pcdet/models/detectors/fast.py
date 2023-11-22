@@ -23,6 +23,13 @@ class Fast(Detector3DTemplate):
             return ret_dict, tb_dict, disp_dict
         else:
             pred_dicts, recall_dicts = self.post_processing(batch_dict)
+            """ import numpy as np
+            print(len(batch_dict['gt_boxes'][0]))
+            if( len(batch_dict['gt_boxes'][0])>10):
+                np.save("/mnt/4tssd1/yw/Fast_det/points.npy",batch_dict['points'].cpu().detach().numpy())
+                np.save("/mnt/4tssd1/yw/Fast_det/gt_boxes.npy",batch_dict['gt_boxes'].cpu().detach().numpy())
+                np.save("/mnt/4tssd1/yw/Fast_det/pred_boxes.npy",pred_dicts[0]['pred_boxes'].cpu().detach().numpy())
+                exit() """
             return pred_dicts, recall_dicts
 
     def get_training_loss(self):
