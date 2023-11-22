@@ -4,14 +4,13 @@ DATA_CONFIG:
     _BASE_CONFIG_: cfgs/dataset_configs/kitti_dataset.yaml
 
 MODEL:
-    NAME: FastIOU
+    NAME: Fast
 
     VFE:
         NAME: MeanVFE
 
-
     MAP_TO_BEV:
-        NAME: BEVConvWiseWithIV5
+        NAME: BEVSPConv
         NUM_BEV_FEATURES: 32
         POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
         SIZE : [1408,1600]
@@ -99,10 +98,10 @@ MODEL:
 
 OPTIMIZATION:
     BATCH_SIZE_PER_GPU: 4
-    NUM_EPOCHS: 10
+    NUM_EPOCHS: 80
 
     OPTIMIZER: adam_onecycle
-    LR: 0.0001
+    LR: 0.003
     WEIGHT_DECAY: 0.01
     MOMENTUM: 0.9
 
