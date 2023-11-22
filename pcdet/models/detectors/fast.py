@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from pcdet.utils.bbloss import bb_loss
 from ..model_utils.model_nms_utils import class_agnostic_nms
-from pcdet.datasets.once.once_eval.evaluation import iou3d_kernel_with_heading_gpus
+
 from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 class Fast(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
@@ -69,6 +69,7 @@ class FastIOU(Detector3DTemplate):
             pred_dicts, recall_dicts = self.post_processing(batch_dict)
             return pred_dicts, recall_dicts
     def get_bb_loss(self,batch_dict):
+        from pcdet.datasets.once.once_eval.evaluation import iou3d_kernel_with_heading_gpus
         pred_dicts, recall_dicts = self.post_processing(batch_dict)
         max_size = max(pred_dict['pred_boxes'].shape[0] for pred_dict in pred_dicts)
         padded_boxes = []
