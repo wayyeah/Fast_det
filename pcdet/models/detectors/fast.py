@@ -1,9 +1,9 @@
 from .detector3d_template import Detector3DTemplate
-import time
+import numpy as np
 import torch
 from pcdet.utils.bbloss import bb_loss
 from ..model_utils.model_nms_utils import class_agnostic_nms
-from pcdet.datasets.once.once_eval.evaluation import iou3d_kernel_with_heading
+from pcdet.datasets.once.once_eval.evaluation import iou3d_kernel_with_heading_gpus
 from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 class Fast(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
@@ -48,54 +48,54 @@ class FastIOU(Detector3DTemplate):
             batch_dict = cur_module(batch_dict)
         if self.training:
             loss, tb_dict, disp_dict = self.get_training_loss()
-            st=time.time()
-            pred_dicts, recall_dicts = self.post_processing(batch_dict)
             
-            max_size = max(pred_dict['pred_boxes'].shape[0] for pred_dict in pred_dicts)
-            
-            padded_boxes = []
-            padded_scores = []
-            
-            for pred_dict in pred_dicts:
-                padding_size = max_size - pred_dict['pred_boxes'].shape[0]
-                padded_box = torch.nn.functional.pad(pred_dict['pred_boxes'], (0, 0, 0, padding_size), "constant", 0)
-                padded_score = torch.nn.functional.pad(pred_dict['pred_scores'], (0, padding_size), "constant", 0)
-                padded_scores.append(padded_score)
-                padded_boxes.append(padded_box)
-            batched_preds_boxes = torch.stack(padded_boxes)
-            b_loss=0
-            import numpy as np
-            for i in range(len(pred_dicts)):
-                mask = batch_dict['gt_boxes'][i].sum(dim=1) != 0  # 计算每个框的元素总和，检查是否不为零
-                filtered_gt_boxes = batch_dict['gt_boxes'][i][mask]  # 应用掩码过滤全零的框
-                matrix=(iou3d_kernel_with_heading(filtered_gt_boxes[:,:7].cpu().detach().numpy(), batched_preds_boxes[i].cpu().detach().numpy()))
-                mask_gt=[]
-                mask_pred=[]
-                for row in (matrix):
-                    if sum(row)>0:
-                        max_index=np.argmax(row)
-                        mask_gt.append(True)
-                        mask_pred.append(max_index)
-                    else:
-                        mask_gt.append(False)
-                
-                b_loss+=(bb_loss( batched_preds_boxes[i][mask_pred],filtered_gt_boxes[mask_gt])).mean()
-                
-                
-            
+            b_loss=self.get_bb_loss(batch_dict)
+            if torch.isnan(b_loss):
+                b_loss=0
             loss+=b_loss
+         
             ret_dict = {
                 'loss': loss
             }
             return ret_dict, tb_dict, disp_dict
         else:
-    
             pred_dicts, recall_dicts = self.post_processing(batch_dict)
             return pred_dicts, recall_dicts
-
+    def get_bb_loss(self,batch_dict):
+        pred_dicts, recall_dicts = self.post_processing(batch_dict)
+        max_size = max(pred_dict['pred_boxes'].shape[0] for pred_dict in pred_dicts)
+        padded_boxes = []
+        padded_scores = []
+        for pred_dict in pred_dicts:
+            padding_size = max_size - pred_dict['pred_boxes'].shape[0]
+            padded_box = torch.nn.functional.pad(pred_dict['pred_boxes'], (0, 0, 0, padding_size), "constant", 0)
+            padded_score = torch.nn.functional.pad(pred_dict['pred_scores'], (0, padding_size), "constant", 0)
+            padded_scores.append(padded_score)
+            padded_boxes.append(padded_box)
+        batched_preds_boxes = torch.stack(padded_boxes)
+        b_loss=0
+        for i in range(len(pred_dicts)):
+            mask = batch_dict['gt_boxes'][i].sum(dim=1) != 0  # 计算每个框的元素总和，检查是否不为零
+            filtered_gt_boxes = batch_dict['gt_boxes'][i][mask]  # 应用掩码过滤全零的框
+            matrix=iou3d_kernel_with_heading_gpus(filtered_gt_boxes[:,:7].cpu().detach().numpy(), batched_preds_boxes[i].cpu().detach().numpy(),device=int(str(batched_preds_boxes[i].device).split(':')[-1]))
+            mask_gt=[]
+            mask_pred=[]
+            for row in (matrix):
+                if sum(row)>0:
+                    max_index=np.argmax(row)
+                    if row[max_index]>0.5:
+                        mask_gt.append(True)
+                        mask_pred.append(max_index)
+                    else:
+                        mask_gt.append(False)
+                else:
+                    mask_gt.append(False)
+            if(len(mask_gt)==0):
+                continue
+            b_loss+=(bb_loss( batched_preds_boxes[i][mask_pred],filtered_gt_boxes[mask_gt])).mean()
+        return b_loss
     def get_training_loss(self):
         disp_dict = {}
-
         loss_rpn, tb_dict = self.dense_head.get_loss()
         tb_dict = {
             'loss_rpn': loss_rpn.item(),

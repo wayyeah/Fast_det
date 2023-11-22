@@ -342,6 +342,42 @@ def iou3d_kernel(gt_boxes, pred_boxes):
     #union_3d[union_3d<eps] = eps
     iou3d = intersection_3d / union_3d
     return iou3d
+def iou3d_kernel_with_heading_gpus(gt_boxes, pred_boxes,device):
+    """
+    Core iou3d computation (with cuda)
+
+    Args:
+        gt_boxes: [N, 7] (x, y, z, w, l, h, rot) in Lidar coordinates
+        pred_boxes: [M, 7]
+
+    Returns:
+        iou3d: [N, M]
+    """
+    intersection_2d = rotate_iou_gpu_eval(gt_boxes[:, [0, 1, 3, 4, 6]], pred_boxes[:, [0, 1, 3, 4, 6]], criterion=2,device_id=device)
+    gt_max_h = gt_boxes[:, [2]] + gt_boxes[:, [5]] * 0.5
+    gt_min_h = gt_boxes[:, [2]] - gt_boxes[:, [5]] * 0.5
+    pred_max_h = pred_boxes[:, [2]] + pred_boxes[:, [5]] * 0.5
+    pred_min_h = pred_boxes[:, [2]] - pred_boxes[:, [5]] * 0.5
+    max_of_min = np.maximum(gt_min_h, pred_min_h.T)
+    min_of_max = np.minimum(gt_max_h, pred_max_h.T)
+    inter_h = min_of_max - max_of_min
+    inter_h[inter_h <= 0] = 0
+    #inter_h[intersection_2d <= 0] = 0
+    intersection_3d = intersection_2d * inter_h
+    gt_vol = gt_boxes[:, [3]] * gt_boxes[:, [4]] * gt_boxes[:, [5]]
+    pred_vol = pred_boxes[:, [3]] * pred_boxes[:, [4]] * pred_boxes[:, [5]]
+    union_3d = gt_vol + pred_vol.T - intersection_3d
+    #eps = 1e-6
+    #union_3d[union_3d<eps] = eps
+    iou3d = intersection_3d / union_3d
+
+    # rotation orientation filtering
+    diff_rot = gt_boxes[:, [6]] - pred_boxes[:, [6]].T
+    diff_rot = np.abs(diff_rot)
+    reverse_diff_rot = 2 * np.pi - diff_rot
+    diff_rot[diff_rot >= np.pi] = reverse_diff_rot[diff_rot >= np.pi] # constrain to [0-pi]
+    iou3d[diff_rot > np.pi/2] = 0 # unmatched if diff_rot > 90
+    return iou3d
 
 def iou3d_kernel_with_heading(gt_boxes, pred_boxes):
     """
