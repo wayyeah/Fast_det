@@ -68,6 +68,26 @@ class BEVSPConv(nn.Module):
         ).add(
         scn.BatchNormReLU(8)
         ).add(
+        scn.SubmanifoldConvolution(2, 8, 16, 3, False)  # 类似于 nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1)
+        ).add(
+        scn.BatchNormReLU(16)
+        ).add(
+        scn.SubmanifoldConvolution(2, 16, 32, 3, False)  # 类似于 nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
+        ).add(
+        scn.BatchNormReLU(32)
+        ).add(
+        scn.SparseToDense(2, 32)  # 将稀疏张量转换为密集张量
+        )
+        self.pooling_layer=nn.Sequential(
+        nn.MaxPool2d(kernel_size=2, stride=2),
+        nn.MaxPool2d(kernel_size=2, stride=2),
+        nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        """ self.conv_layers = scn.Sequential().add(
+        scn.SubmanifoldConvolution(2, 1, 8, 3, False)  # 类似于 nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1)
+        ).add(
+        scn.BatchNormReLU(8)
+        ).add(
         scn.MaxPooling(2, 3, 2)  # 类似于 nn.MaxPool2d(kernel_size=2, stride=2)
         ).add(
         scn.SubmanifoldConvolution(2, 8, 16, 3, False)  # 类似于 nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1)
@@ -81,9 +101,10 @@ class BEVSPConv(nn.Module):
         scn.BatchNormReLU(32)
         ).add(
         scn.SparseToDense(2, 32)  # 将稀疏张量转换为密集张量
-        )
-        self.inputSpatialSize=self.conv_layers.input_spatial_size(torch.LongTensor([self.size[1]//8,self.size[0]//8]))
+        ) """
+        self.inputSpatialSize=self.conv_layers.input_spatial_size(torch.LongTensor([self.size[1],self.size[0]]))
         self.input_layer=scn.InputLayer(2,self.inputSpatialSize)
+
     def forward(self, batch_dict):
         """
         Args:
@@ -98,5 +119,11 @@ class BEVSPConv(nn.Module):
         batch_dict['bev']=bev
         coords,combined_features=convert_bev_to_sparse(bev)
         input_tensor=self.input_layer([coords,combined_features])
-        batch_dict['spatial_features'] = self.conv_layers(input_tensor)
+        batch_dict['spatial_features'] = self.pooling_layer(self.conv_layers(input_tensor))
+        """ print("batch_dict['spatial_features'].shape",batch_dict['spatial_features'].shape)
+        np.save("/home/xmu/projects/xmuda/yw/Fast_det/bev_features.npy",batch_dict['spatial_features'].cpu().detach().numpy())
+        np.save("/home/xmu/projects/xmuda/yw/Fast_det/bev.npy",batch_dict['bev'].cpu().detach().numpy())
+        np.save("/home/xmu/projects/xmuda/yw/Fast_det/points.npy",batch_dict['points'].cpu().detach().numpy())
+        exit()
+        exit() """
         return batch_dict
