@@ -1,6 +1,6 @@
 from .base_bev_backbone import BaseBEVBackbone, BaseBEVBackboneV1, BaseBEVResBackbone,BaseBEVBackboneWise
 from .base_bev_backbone_TS import BaseBEVBackboneTS
-from .uni_bev_backbone import UniBEVBackbone
+from .uni_bev_backbone import UniBEVBackbone, UniBEVBackboneV3
 __all__ = {
     'BaseBEVBackbone': BaseBEVBackbone,
     'BaseBEVBackboneV1': BaseBEVBackboneV1,
@@ -8,4 +8,5 @@ __all__ = {
     'BaseBEVBackboneTS': BaseBEVBackboneTS,
     'UniBEVBackbone': UniBEVBackbone,
     'BaseBEVBackboneWise': BaseBEVBackboneWise,
+    'UniBEVBackboneV3': UniBEVBackboneV3,
 }

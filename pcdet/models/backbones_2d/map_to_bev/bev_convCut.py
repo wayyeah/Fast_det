@@ -41,7 +41,31 @@ def intensity_to_bev(points, point_range, batch_size,size):
     i_vals=intensity[mask]
     bev[batch_indices, 0, y_indices, x_indices] = torch.maximum(bev[batch_indices, 0, y_indices, x_indices], i_vals)
     return bev
+class DepthwiseSeparableConvWithShuffle(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
+        super().__init__()
+        self.depthwise = nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size, stride=stride, padding=padding, groups=in_channels)
+        self.pointwise = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1)
+        self.shuffle = ChannelShuffle(groups=in_channels)
 
+    def forward(self, x):
+        x = self.depthwise(x)
+        x = self.shuffle(x)
+        x = self.pointwise(x)
+        return x
+
+class ChannelShuffle(nn.Module):
+    def __init__(self, groups):
+        super().__init__()
+        self.groups = groups
+
+    def forward(self, x):
+        batch_size, num_channels, height, width = x.size()
+        channels_per_group = num_channels // self.groups
+        x = x.view(batch_size, self.groups, channels_per_group, height, width)
+        x = torch.transpose(x, 1, 2).contiguous()
+        x = x.view(batch_size, -1, height, width)
+        return x
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
         super().__init__()
@@ -63,20 +87,24 @@ class BEVBaseCut(nn.Module):
         #1*1*800*704
         self.conv_1=nn.Sequential(
             # Existing layers
-            DepthwiseSeparableConv(2,8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408  80*70.4 200*176
+            DepthwiseSeparableConvWithShuffle(2,8, kernel_size=3, stride=1, padding=1), 
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            DepthwiseSeparableConvWithShuffle(8,8, kernel_size=3, stride=1, padding=1), 
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*400*352
+            
         )
         self.conv_2=nn.Sequential(
-            DepthwiseSeparableConv(8,16, kernel_size=3, stride=1, padding=1),
+            DepthwiseSeparableConvWithShuffle(8,16, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*200*176
         )
         self.conv_3=nn.Sequential(
             # Depthwise separable convolution
-            DepthwiseSeparableConv(16, self.num_bev_features, kernel_size=3, stride=1, padding=1),
+            DepthwiseSeparableConvWithShuffle(16, self.num_bev_features, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
         )
