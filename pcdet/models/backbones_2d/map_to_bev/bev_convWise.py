@@ -650,6 +650,10 @@ class BEVConvWiseWithIV5(nn.Module):
         bev_combined = torch.cat([bev, bev_intensity], dim=1)  # Stack along the channel dimension
         batch_dict['bev'] = bev_combined
         batch_dict['spatial_features'] = self.conv_layers(bev_combined)
+        """ np.save("/mnt/4tssd1/yw/Fast_det/bev_features.npy",batch_dict['spatial_features'].cpu().detach().numpy())
+        np.save("/mnt/4tssd1/yw/Fast_det/bev.npy",batch_dict['bev'].cpu().detach().numpy())
+        np.save("/mnt/4tssd1/yw/Fast_det/points.npy",batch_dict['points'].cpu().detach().numpy())
+        exit() """
         return batch_dict
     
 class BEVConvWiseWithIV6(nn.Module):
@@ -797,7 +801,7 @@ class BEVBase(nn.Module):
         #1*1*1600*1408
         self.conv_1=nn.Sequential(
             # Existing layers
-            DepthwiseSeparableConv(2,8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
+            DepthwiseSeparableConv(2,8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408  80*70.4 200*176
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
