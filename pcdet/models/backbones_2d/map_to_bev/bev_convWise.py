@@ -795,27 +795,26 @@ class BEVBase(nn.Module):
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
         self.size=self.model_cfg.SIZE
         #1*1*1600*1408
-        self.conv_layers = nn.Sequential(
+        self.conv_1=nn.Sequential(
             # Existing layers
-            nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
+            DepthwiseSeparableConv(2,8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
-            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
+        )
+        self.conv_2=nn.Sequential(
+            DepthwiseSeparableConv(8,16, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
+        )
+        self.conv_3=nn.Sequential(
             # Depthwise separable convolution
-            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1, groups=16),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            # Final layers
-            nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
+            DepthwiseSeparableConv(16, self.num_bev_features, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
+            nn.MaxPool2d(kernel_size=2, stride=2),
         )
-
     def forward(self, batch_dict):
         """
         Args:
@@ -831,5 +830,8 @@ class BEVBase(nn.Module):
         bev_intensity = intensity_to_bev(batch_dict['points'], self.point_range, batch_dict['batch_size'], self.size)
         bev_combined = torch.cat([bev, bev_intensity], dim=1)  # Stack along the channel dimension
         batch_dict['bev'] = bev_combined
-        batch_dict['spatial_features'] = self.conv_layers(bev_combined)
+        output_1=self.conv_1(bev_combined)
+        output_2=self.conv_2(output_1)
+        output_3=self.conv_3(output_2)
+        batch_dict['spatial_features'] = (output_3)
         return batch_dict
