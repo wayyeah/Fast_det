@@ -146,7 +146,7 @@ class BEVBaseCutV1(nn.Module):
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
-            nn.Conv2d(16, 32, kernel_size=3, striAde=1, padding=1),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             # Final layers
