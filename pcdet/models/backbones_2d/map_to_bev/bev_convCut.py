@@ -146,7 +146,7 @@ class BEVBaseCutV1(nn.Module):
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
-            nn.Conv2d(16, 32, kernel_size=3, stri4de=1, padding=1),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             # Final layers
@@ -186,17 +186,17 @@ class BEVBaseCutV2(nn.Module):
             nn.Conv2d(2, 4, kernel_size=3, stride=1, padding=1), 
             nn.BatchNorm2d(4),
             nn.ReLU(),
-            nn.Conv2d(4, 8, kernel_size=3, stri4de=1, padding=1),
+            nn.Conv2d(4, 8, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
-            nn.Conv2d(16, 16, kernel_size=3, stri4de=1, padding=1),
+            nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=3, stri4de=1, padding=1),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             # Final layers
