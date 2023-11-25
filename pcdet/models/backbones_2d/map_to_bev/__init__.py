@@ -10,7 +10,7 @@ from .bev_convI import BEVConvI,BEVConvIV5
 from .bev_convDepth import BEVConvDepth 
 from .bev_convWise import BEVConvWise,BEVConvWiseV2,BEVConvWiseV3,BEVConvWiseWithI,BEVConvWiseWithIV2,BEVConvWiseWithIV3,BEVConvWiseWithIV4,BEVConvWiseWithIV5,BEVConvWiseWithIV6,BEVConvWiseWithIV7,BEVConvWiseWithIV8,BEVBase
 from .bev_spconv import BEVSPConv
-from .bev_convCut import BEVBaseCut,BEVBaseCutV1
+from .bev_convCut import BEVBaseCut,BEVBaseCutV1,BEVBaseCutV2
 __all__ = {
     'HeightCompression': HeightCompression,
     'PointPillarScatter': PointPillarScatter,
@@ -39,4 +39,5 @@ __all__ = {
     'BEVBase':BEVBase,
     'BEVBaseCut':BEVBaseCut,
     'BEVBaseCutV1':BEVBaseCutV1,
+    'BEVBaseCutV2':BEVBaseCutV2,
 }

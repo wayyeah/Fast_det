@@ -146,7 +146,7 @@ class BEVBaseCutV1(nn.Module):
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
-            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(16, 32, kernel_size=3, stri4de=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             # Final layers
@@ -173,3 +173,53 @@ class BEVBaseCutV1(nn.Module):
         batch_dict['bev'] = bev_combined
         batch_dict['spatial_features'] = self.conv_layers(bev_combined)
         return batch_dict    
+class BEVBaseCutV2(nn.Module):
+    def __init__(self, model_cfg, **kwargs):
+        super().__init__()
+        self.model_cfg = model_cfg
+        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
+        self.point_range=self.model_cfg.POINT_CLOUD_RANGE
+        self.size=self.model_cfg.SIZE
+        #1*1*1600*1408
+        self.conv_layers = nn.Sequential(
+            # Existing layers
+            nn.Conv2d(2, 4, kernel_size=3, stride=1, padding=1), 
+            nn.BatchNorm2d(4),
+            nn.ReLU(),
+            nn.Conv2d(4, 8, kernel_size=3, stri4de=1, padding=1),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
+            nn.Conv2d(16, 16, kernel_size=3, stri4de=1, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, stri4de=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            # Final layers
+            nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
+            nn.BatchNorm2d(self.num_bev_features),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
+        )
+
+    def forward(self, batch_dict):
+        """
+        Args:
+            batch_dict:
+                encoded_spconv_tensor: sparse tensor
+        Returns:
+            batch_dict:
+                spatial_features:
+
+        """
+        bev=points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
+        batch_dict['bev']=bev
+        bev_intensity = intensity_to_bev(batch_dict['points'], self.point_range, batch_dict['batch_size'], self.size)
+        bev_combined = torch.cat([bev, bev_intensity], dim=1)  # Stack along the channel dimension
+        batch_dict['bev'] = bev_combined
+        batch_dict['spatial_features'] = self.conv_layers(bev_combined)
+        return batch_dict        
