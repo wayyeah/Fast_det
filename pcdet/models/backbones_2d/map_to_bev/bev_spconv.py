@@ -167,7 +167,7 @@ class BEVSPConvV2(nn.Module):
        
         input_tensor=self.input_layer([coords,combined_features])
         
-        batch_dict['spatial_features'] = self.conv_layers(input_tensor)[:,:,:self.size[1]//8,:self.size[0]//8]
+        batch_dict['spatial_features'] = self.conv_layers(input_tensor)[:,:,:self.size[1]//2,:self.size[0]//2]
         """ print("batch_dict['spatial_features'].shape",batch_dict['spatial_features'].shape)
         np.save("/home/xmu/projects/xmuda/yw/Fast_det/bev_features.npy",batch_dict['spatial_features'].cpu().detach().numpy())
         np.save("/home/xmu/projects/xmuda/yw/Fast_det/bev.npy",batch_dict['bev'].cpu().detach().numpy())
