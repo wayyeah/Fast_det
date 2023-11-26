@@ -66,47 +66,32 @@ class ChannelShuffle(nn.Module):
         x = torch.transpose(x, 1, 2).contiguous()
         x = x.view(batch_size, -1, height, width)
         return x
-class DepthwiseSeparableConv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding):
-        super().__init__()
-        self.depthwise = nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size,
-                                   stride=stride, padding=padding, groups=in_channels)
-        self.pointwise = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1)
-
-    def forward(self, x):
-        x = self.depthwise(x)
-        x = self.pointwise(x)
-        return x
-class BEVBaseCut(nn.Module):
+class BEVConvS(nn.Module):
     def __init__(self, model_cfg, **kwargs):
         super().__init__()
         self.model_cfg = model_cfg
         self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
         self.size=self.model_cfg.SIZE
-        #1*1*800*704
-        self.conv_1=nn.Sequential(
+        self.conv_layers = nn.Sequential(
             # Existing layers
-            DepthwiseSeparableConvWithShuffle(2,8, kernel_size=3, stride=1, padding=1), 
+            nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
             nn.BatchNorm2d(8),
             nn.ReLU(),
-            DepthwiseSeparableConvWithShuffle(8,8, kernel_size=3, stride=1, padding=1), 
-            nn.BatchNorm2d(8),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),#b*8*400*352
-            
-        )
-        self.conv_2=nn.Sequential(
-            DepthwiseSeparableConvWithShuffle(8,16, kernel_size=3, stride=1, padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*200*176
-        )
-        self.conv_3=nn.Sequential(
+            nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
             # Depthwise separable convolution
-            DepthwiseSeparableConvWithShuffle(16, self.num_bev_features, kernel_size=3, stride=1, padding=1),
+            DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            # Final layers
+            nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
         )
     def forward(self, batch_dict):
         """
