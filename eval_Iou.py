@@ -83,14 +83,16 @@ for i in range (len(gt_pkl)):
     gt_boxes=gt_pkl[i]['annos']['gt_boxes_lidar']
     pred_boxes=det_pkl[i]['boxes_lidar']
     pred_names=det_pkl[i]['name']
+    gt_names=gt_pkl[i]['annos']['name'][:len(gt_boxes)]
     ious=iou3d_kernel_with_heading(gt_boxes,pred_boxes)
-    for idx,row in enumerate(ious):
-        if(pred_names[idx]=='Car'):
-            if(max(row)<0.5):
+    
+    for k in range(len(gt_boxes)):
+        if(gt_names[k]=='Car'):
+            iou=max(ious[:,k])
+            if iou<0.5:
                 ious_count['iou<0.5']+=1
-                
-            elif(max(row)<0.7 and max(row)>=0.5):
+            elif iou<0.7 and iou>=0.5:
                 ious_count['iou<0.7']+=1
-            elif (max(row)>=0.7):
+            else:
                 ious_count['iou>=0.7']+=1
 print(ious_count)
