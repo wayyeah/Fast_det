@@ -179,7 +179,7 @@ class BEVConvSV3(nn.Module):
             # Final layers
             nn.Conv2d(16, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
             nn.BatchNorm2d(self.num_bev_features),
-            nn.max_pool2d(kernel_size=2, stride=2), #b*n*200*176
+            nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
             nn.ReLU(),
            
         )
