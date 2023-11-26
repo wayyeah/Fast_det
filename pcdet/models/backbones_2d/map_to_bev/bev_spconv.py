@@ -2,8 +2,11 @@ import torch.nn as nn
 import numpy as np
 import torch 
 import torch.nn.functional as F
-import sparseconvnet as scn
-
+try:
+    import sparseconvnet as scn
+except:
+    print("sparseconvnet not found")
+    
 def points_to_bev(points, point_range, batch_size, size):
     x_scale_factor = size[0] / (point_range[3] - point_range[0])
     y_scale_factor = size[1] / (point_range[4] - point_range[1])
