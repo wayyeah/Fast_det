@@ -77,19 +77,20 @@ eval_gt_annos = [copy.deepcopy(info['annos']) for info in gt_pkl]
 #eval_gt_annos = [copy.deepcopy(info['annos']) for info in gt_pkl]
 #result,str=kitti_eval.get_official_eval_result(eval_gt_annos, eval_det_annos, class_names)
 #print(result)
-print(det_pkl[0]['name'])
-exit()
+ious_count={'iou<0.5':0,'iou<0.7':0,'iou>=0.7':0}
 #统计不同IOU<0.5,<0.7的数量
 for i in range (len(gt_pkl)):
     gt_boxes=gt_pkl[i]['annos']['gt_boxes_lidar']
     pred_boxes=det_pkl[i]['boxes_lidar']
-    
+    pred_names=det_pkl[i]['name']
     ious=iou3d_kernel_with_heading(gt_boxes,pred_boxes)
-    for row in ious:
-        if(max(row)<0.5):
-            print("iou<0.5")
-        elif(max(row)<0.7 and max(row)>=0.5):
-            print("iou<0.7")
-        elif (max(row)>=0.7):
-            print("iou>=0.7")
-    print(ious)
+    for idx,row in enumerate(ious):
+        if(pred_names[idx]=='Car'):
+            if(max(row)<0.5):
+                ious_count['iou<0.5']+=1
+                
+            elif(max(row)<0.7 and max(row)>=0.5):
+                ious_count['iou<0.7']+=1
+            elif (max(row)>=0.7):
+                ious_count['iou>=0.7']+=1
+print(ious_count)
