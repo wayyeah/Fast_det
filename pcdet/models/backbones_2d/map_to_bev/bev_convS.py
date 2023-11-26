@@ -108,10 +108,8 @@ class BEVConvS(nn.Module):
         bev_intensity = intensity_to_bev(batch_dict['points'], self.point_range, batch_dict['batch_size'], self.size)
         bev_combined = torch.cat([bev, bev_intensity], dim=1)  # Stack along the channel dimension
         batch_dict['bev'] = bev_combined
-        output_1=self.conv_1(bev_combined)
-        output_2=self.conv_2(output_1)
-        output_3=self.conv_3(output_2)
-        batch_dict['spatial_features'] = (output_3)
+        spatial_features = self.conv_layers(bev_combined)
+        batch_dict['spatial_features'] = (spatial_features)
         return batch_dict
     
 class BEVBaseCutV1(nn.Module):
