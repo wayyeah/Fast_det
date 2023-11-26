@@ -36,7 +36,6 @@ __all__ = {
     'BEVConvWiseWithIV8':BEVConvWiseWithIV8,
     'BEVConvIV5':BEVConvIV5,
     'BEVSPConv': BEVSPConv,
-    'BEVBase':BEVBase,
-    'BEVBaseCut':BEVConvS,
+    'BEVConvS':BEVConvS,
   
 }
