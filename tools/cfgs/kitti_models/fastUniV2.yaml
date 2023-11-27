@@ -12,8 +12,7 @@ MODEL:
     
 
     BACKBONE_2D:
-        NAME: UniBEVBackboneV3
-        NUM_BEV_FEATURES: 32
+        NAME: UniBEVBackboneV2
         POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
         SIZE : [1408,1600]
     DENSE_HEAD:

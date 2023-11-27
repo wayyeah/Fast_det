@@ -135,7 +135,6 @@ class UniBEVBackboneV2(nn.Module):
     def __init__(self, model_cfg, **kwargs):
         super().__init__()
         self.model_cfg = model_cfg
-        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range = self.model_cfg.POINT_CLOUD_RANGE
         self.size = self.model_cfg.SIZE
         # Initial downsample
