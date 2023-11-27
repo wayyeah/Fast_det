@@ -150,9 +150,9 @@ class UniBEVBackboneV2(nn.Module):
             nn.Conv2d(2, 4, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(4),
             nn.ReLU(),
-            BasicBlock(4, 8),
-            BasicBlock(8, 16),
-            BasicBlock(16, 32),
+            BasicBlock(4, 8,downsample=True),
+            BasicBlock(8, 16,downsample=True),
+            BasicBlock(16, 32,downsample=True),
             BasicBlock(32, 64, stride=2,downsample=True),
             BasicBlock(64, 128, stride=2,downsample=True)
         )
