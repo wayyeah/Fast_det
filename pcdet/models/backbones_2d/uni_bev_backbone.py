@@ -90,54 +90,6 @@ class UniBEVBackbone(nn.Module):
         self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range = self.model_cfg.POINT_CLOUD_RANGE
         self.size = self.model_cfg.SIZE
-        
-         # Initial downsample
-        self.downsample_layers = nn.Sequential(
-            nn.Conv2d(2, 8, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(8),
-            nn.ReLU(),
-            BasicBlock(8, 16),
-            BasicBlock(16, 32),
-            BasicBlock(32, 64, stride=2),
-            BasicBlock(64, 128, stride=2)
-        )
-        
-        # Bottleneck layers
-        self.bottleneck_layers = nn.Sequential(
-            BasicBlock(128, 128),
-            BasicBlock(128, 128)
-        )
-        # Upsample layers
-        self.upsample_layers = nn.Sequential(
-            nn.ConvTranspose2d(128, 128, kernel_size=2, stride=2),
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
-            nn.ConvTranspose2d(128, 256, kernel_size=2, stride=2),
-            nn.BatchNorm2d(256),
-            nn.ReLU()
-        )
-        # Output layer to match the target shape batch x 256 x 200 x 176
-        self.output_layers = nn.Sequential(
-            nn.Conv2d(256, 256, kernel_size=3, stride=4, padding=1),
-            nn.BatchNorm2d(256),
-            nn.ReLU()
-        )
-    def forward(self, batch_dict):
-        bev=points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
-        x = self.downsample_layers(bev)
-        x = self.bottleneck_layers(x)
-        x = self.upsample_layers(x)
-        x = self.output_layers(x)
-        batch_dict['spatial_features_2d'] = x
-        return batch_dict
-    
-class UniBEVBackboneV2(nn.Module):
-    def __init__(self, model_cfg, **kwargs):
-        super().__init__()
-        self.model_cfg = model_cfg
-        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
-        self.point_range = self.model_cfg.POINT_CLOUD_RANGE
-        self.size = self.model_cfg.SIZE
         # Initial downsample
         self.downsample_layers = nn.Sequential(
             nn.Conv2d(2, 32, kernel_size=3, stride=2, padding=1),  # -> batch x 32 x 800 x 704
@@ -176,6 +128,54 @@ class UniBEVBackboneV2(nn.Module):
             nn.Conv2d(256, 256, kernel_size=3, stride=4, padding=1),  # -> batch x 256 x 200 x 176
             nn.BatchNorm2d(256),
             nn.ReLU(),
+        )
+         
+    def forward(self, batch_dict):
+        bev=points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
+        x = self.downsample_layers(bev)
+        x = self.bottleneck_layers(x)
+        x = self.upsample_layers(x)
+        x = self.output_layers(x)
+        batch_dict['spatial_features_2d'] = x
+        return batch_dict
+    
+class UniBEVBackboneV2(nn.Module):
+    def __init__(self, model_cfg, **kwargs):
+        super().__init__()
+        self.model_cfg = model_cfg
+        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
+        self.point_range = self.model_cfg.POINT_CLOUD_RANGE
+        self.size = self.model_cfg.SIZE
+        # Initial downsample
+        self.downsample_layers = nn.Sequential(
+            nn.Conv2d(2, 8, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            BasicBlock(8, 16),
+            BasicBlock(16, 32),
+            BasicBlock(32, 64, stride=2),
+            BasicBlock(64, 128, stride=2)
+        )
+        
+        # Bottleneck layers
+        self.bottleneck_layers = nn.Sequential(
+            BasicBlock(128, 128),
+            BasicBlock(128, 128)
+        )
+        # Upsample layers
+        self.upsample_layers = nn.Sequential(
+            nn.ConvTranspose2d(128, 128, kernel_size=2, stride=2),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.ConvTranspose2d(128, 256, kernel_size=2, stride=2),
+            nn.BatchNorm2d(256),
+            nn.ReLU()
+        )
+        # Output layer to match the target shape batch x 256 x 200 x 176
+        self.output_layers = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=3, stride=4, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU()
         )
     def forward(self, batch_dict):
         bev=points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
