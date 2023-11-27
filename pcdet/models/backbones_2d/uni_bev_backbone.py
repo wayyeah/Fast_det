@@ -146,18 +146,15 @@ class UniBEVBackboneV2(nn.Module):
         self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range = self.model_cfg.POINT_CLOUD_RANGE
         self.size = self.model_cfg.SIZE
-        # Initial downsample
         self.downsample_layers = nn.Sequential(
-            nn.Conv2d(2, 8, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(8),
+            nn.Conv2d(2, 4, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(4),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2), 
+            BasicBlock(4, 8),
             BasicBlock(8, 16),
-            nn.MaxPool2d(kernel_size=2, stride=2), 
             BasicBlock(16, 32),
-            
-            BasicBlock(32, 64),
-            BasicBlock(64, 128)
+            BasicBlock(32, 64, stride=2,downsample=True),
+            BasicBlock(64, 128, stride=2,downsample=True)
         )
         
         # Bottleneck layers
@@ -165,6 +162,7 @@ class UniBEVBackboneV2(nn.Module):
             BasicBlock(128, 128),
             BasicBlock(128, 128)
         )
+        
         # Upsample layers
         self.upsample_layers = nn.Sequential(
             nn.ConvTranspose2d(128, 128, kernel_size=2, stride=2),
@@ -174,6 +172,7 @@ class UniBEVBackboneV2(nn.Module):
             nn.BatchNorm2d(256),
             nn.ReLU()
         )
+        
         # Output layer to match the target shape batch x 256 x 200 x 176
         self.output_layers = nn.Sequential(
             nn.Conv2d(256, 256, kernel_size=3, stride=4, padding=1),
