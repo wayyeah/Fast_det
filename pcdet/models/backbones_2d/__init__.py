@@ -8,5 +8,5 @@ __all__ = {
     'BaseBEVBackboneTS': BaseBEVBackboneTS,
     'UniBEVBackbone': UniBEVBackbone,
     'BaseBEVBackboneWise': BaseBEVBackboneWise,
-    'UniBEVBackboneV3': UniBEVBackboneV2,
+    'UniBEVBackboneV2': UniBEVBackboneV2,
 }
