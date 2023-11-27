@@ -258,7 +258,7 @@ class BEVConvSV5(nn.Module):
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
-            DepthwiseSeparableConvWithShuffle(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
+            DepthwiseSeparableConvWithShuffle(8, 16, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
