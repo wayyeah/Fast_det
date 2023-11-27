@@ -190,3 +190,63 @@ class UniBEVBackboneV2(nn.Module):
         x = self.output_layers(x)
         batch_dict['spatial_features_2d'] = x
         return batch_dict
+    
+class UniBEVBackboneV3(nn.Module):
+    def __init__(self, model_cfg, **kwargs):
+        super().__init__()
+        self.model_cfg = model_cfg
+        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
+        self.point_range = self.model_cfg.POINT_CLOUD_RANGE
+        self.size = self.model_cfg.SIZE
+        self.downsample_layers = nn.Sequential(
+            nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            BasicBlock(32, 32,downsample=True),
+            BasicBlock(32, 64,downsample=True),
+            BasicBlock(64, 128,downsample=True),
+           
+        )
+        
+        # Bottleneck layers
+        self.bottleneck_layers = nn.Sequential(
+            BasicBlock(128, 128),
+            BasicBlock(128, 128)
+        )
+        
+        # Upsample layers
+        self.upsample_layers = nn.Sequential(
+            nn.ConvTranspose2d(128, 128, kernel_size=2, stride=2),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.ConvTranspose2d(128, 256, kernel_size=2, stride=2),
+            nn.BatchNorm2d(256),
+            nn.ReLU()
+        )
+        
+        # Output layer to match the target shape batch x 256 x 200 x 176
+        self.output_layers = nn.Sequential(
+            nn.Conv2d(256, 256, kernel_size=3, stride=4, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU()
+        )
+    def forward(self, batch_dict):
+        bev=points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
+        bev_intensity = intensity_to_bev(batch_dict['points'], self.point_range, batch_dict['batch_size'], self.size)
+        bev_combined = torch.cat([bev, bev_intensity], dim=1)  # Stack along the channel dimension
+        batch_dict['bev'] = bev_combined
+        x = self.downsample_layers( bev_combined)
+        x = self.bottleneck_layers(x)
+        x = self.upsample_layers(x)
+        x = self.output_layers(x)
+        batch_dict['spatial_features_2d'] = x
+        return batch_dict    
