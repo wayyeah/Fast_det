@@ -151,10 +151,13 @@ class UniBEVBackboneV2(nn.Module):
             nn.Conv2d(2, 8, kernel_size=3, stride=2, padding=1),
             nn.BatchNorm2d(8),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2), 
             BasicBlock(8, 16),
+            nn.MaxPool2d(kernel_size=2, stride=2), 
             BasicBlock(16, 32),
-            BasicBlock(32, 64, stride=2),
-            BasicBlock(64, 128, stride=2)
+            
+            BasicBlock(32, 64),
+            BasicBlock(64, 128)
         )
         
         # Bottleneck layers
