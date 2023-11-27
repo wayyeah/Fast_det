@@ -266,7 +266,7 @@ class UniBEVBackboneV4(nn.Module):
         )
 
         self.resblock1 = nn.Sequential(
-            BasicBlock(16, 32, stride=2),
+            BasicBlock(16, 32, stride=2,downsample=True),
             BasicBlock(32, 32)
         )
 
