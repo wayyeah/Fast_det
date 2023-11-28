@@ -17,7 +17,8 @@ class BaseBEVBackbone(nn.Module):
     def __init__(self, model_cfg, input_channels):
         super().__init__()
         self.model_cfg = model_cfg
-
+        if input_channels is None:
+            input_channels = self.model_cfg.INPUT_CHANNELS
         if self.model_cfg.get('LAYER_NUMS', None) is not None:
             assert len(self.model_cfg.LAYER_NUMS) == len(self.model_cfg.LAYER_STRIDES) == len(self.model_cfg.NUM_FILTERS)
             layer_nums = self.model_cfg.LAYER_NUMS

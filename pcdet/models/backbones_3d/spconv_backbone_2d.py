@@ -321,8 +321,7 @@ def points_to_bev(points, point_range, batch_size, size):
     return bev
 def convert_bev_to_sparse(bev):
     mask = bev != -10
-
-    all_coords = mask.nonzero(as_tuple=False)[:,[1,2,0]]  # 获取所有非-10元素的索引
+    all_coords = mask.nonzero(as_tuple=False)  # 获取所有非-10元素的索引
     features = bev[mask]  # 提取所有非-10元素的特征
     features = features.unsqueeze(-1)  # 增加一个维度
     return all_coords, features
@@ -330,8 +329,12 @@ class BEVBackBone8x(nn.Module):
     def __init__(self, model_cfg, input_channels, grid_size, **kwargs):
         super().__init__()
         self.model_cfg = model_cfg
+        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
+        self.point_range=self.model_cfg.POINT_CLOUD_RANGE
+        self.size=self.model_cfg.SIZE
         norm_fn = partial(nn.BatchNorm1d, eps=1e-3, momentum=0.01)
         self.sparse_shape = grid_size[[1, 0]]
+
         self.input_channels = self.model_cfg.INPUT_CHANNELS
         block = post_act_block
         
@@ -390,9 +393,8 @@ class BEVBackBone8x(nn.Module):
         x_conv3 = self.conv3(x_conv2)
         x_conv4 = self.conv4(x_conv3)
         x_conv4 = x_conv4.dense()
-        print(x_conv4.shape)
-        exit()
-        batch_dict['spatial_features_2d'] = x_conv4
+        batch_dict['spatial_features'] = x_conv4
+
         """ batch_dict.update({
             'multi_scale_2d_features': {
                 'x_conv1': x_conv1,

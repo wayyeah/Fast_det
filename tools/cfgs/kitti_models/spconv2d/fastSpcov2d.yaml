@@ -11,13 +11,13 @@ MODEL:
     BACKBONE_3D:
         NAME: BEVBackBone8x
         NUM_BEV_FEATURES: 256
-        POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
         INPUT_CHANNELS: 1
-   
+        POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
+        SIZE : [1408,1600]
         
     BACKBONE_2D:
         NAME: BaseBEVBackbone
-
+        INPUT_CHANNELS: 256
         LAYER_NUMS: [5, 5]
         LAYER_STRIDES: [1, 2]
         NUM_FILTERS: [128, 256]
