@@ -9,7 +9,7 @@ from .bev_convRes_TS import BEVConvResTS
 from .bev_convI import BEVConvI,BEVConvIV5
 from .bev_convDepth import BEVConvDepth 
 from .bev_convWise import BEVConvWise,BEVConvWiseV2,BEVConvWiseV3,BEVConvWiseWithI,BEVConvWiseWithIV2,BEVConvWiseWithIV3,BEVConvWiseWithIV4,BEVConvWiseWithIV5,BEVConvWiseWithIV6,BEVConvWiseWithIV7,BEVConvWiseWithIV8,BEVBase
-from .bev_spconv import BEVSPConv,BEVSPConvV2,BEVSPConvV3
+from .bev_spconv import BEVSPConv,BEVSPConvV2,BEVSPConvV3,BEVSPConvV4
 from .bev_convS import BEVConvS,BEVConvSV2,BEVConvSV3,BEVConvSV4,BEVConvSV5,BEVConvSZMIN
 from .bev_convFast import BEVConvFast,BEVConvFastV3
 __all__ = {
@@ -47,4 +47,5 @@ __all__ = {
     'BEVConvFastV3':BEVConvFastV3,
     'BEVConvSZMIN':BEVConvSZMIN,
     'BEVSPConvV3':BEVSPConvV3,
+    'BEVSPConvV4':BEVSPConvV4,
 }
