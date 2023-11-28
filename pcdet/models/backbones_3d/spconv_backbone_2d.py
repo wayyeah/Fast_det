@@ -1,7 +1,7 @@
 from functools import partial
 
 import torch.nn as nn
-
+import torch
 from ...utils.spconv_utils import replace_feature, spconv
 
 
@@ -297,4 +297,119 @@ class PillarRes18BackBone8x(nn.Module):
             }
         })
         
+        return batch_dict
+def points_to_bev(points, point_range, batch_size, size):
+    x_scale_factor = size[0] / (point_range[3] - point_range[0])
+    y_scale_factor = size[1] / (point_range[4] - point_range[1])
+    bev_shape = (batch_size, size[1], size[0])  # 更新形状
+    bev = torch.ones(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu")) * -10
+
+    if point_range[0] == 0:
+        x_pixel_values = (points[:, 1] * x_scale_factor).to(torch.int)
+    else:
+        x_pixel_values = ((points[:, 1] + (point_range[3] - point_range[0]) / 2) * x_scale_factor).to(torch.int)
+    y_pixel_values = ((points[:, 2] + (point_range[4] - point_range[1]) / 2) * y_scale_factor).to(torch.int)
+
+    z_values = points[:, 3]
+    mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
+    
+    batch_indices = points[mask, 0].long()
+    x_indices = x_pixel_values[mask]
+    y_indices = y_pixel_values[mask]
+    z_vals = z_values[mask]  
+    bev[batch_indices, y_indices, x_indices] = torch.maximum(bev[batch_indices, y_indices, x_indices], z_vals)
+    return bev
+def convert_bev_to_sparse(bev):
+    mask = bev != -10
+
+    all_coords = mask.nonzero(as_tuple=False)[:,[1,2,0]]  # 获取所有非-10元素的索引
+    features = bev[mask]  # 提取所有非-10元素的特征
+    features = features.unsqueeze(-1)  # 增加一个维度
+    return all_coords, features
+class BEVBackBone8x(nn.Module):
+    def __init__(self, model_cfg, input_channels, grid_size, **kwargs):
+        super().__init__()
+        self.model_cfg = model_cfg
+        norm_fn = partial(nn.BatchNorm1d, eps=1e-3, momentum=0.01)
+        self.sparse_shape = grid_size[[1, 0]]
+        self.input_channels = self.model_cfg.INPUT_CHANNELS
+        block = post_act_block
+        
+
+        self.conv1 = spconv.SparseSequential(
+            block(self.input_channels, 32, 3, norm_fn=norm_fn, padding=1, indice_key='subm1'),
+            block(32, 32, 3, norm_fn=norm_fn, padding=1, indice_key='subm1'),
+        )
+
+        self.conv2 = spconv.SparseSequential(
+            # [1600, 1408] <- [800, 704]
+            block(32, 64, 3, norm_fn=norm_fn, stride=2, padding=1, indice_key='spconv2', conv_type='spconv'),
+            block(64, 64, 3, norm_fn=norm_fn, padding=1, indice_key='subm2'),
+            block(64, 64, 3, norm_fn=norm_fn, padding=1, indice_key='subm2'),
+        )
+
+        self.conv3 = spconv.SparseSequential(
+            # [800, 704] <- [400, 352]
+            block(64, 128, 3, norm_fn=norm_fn, stride=2, padding=1, indice_key='spconv3', conv_type='spconv'),
+            block(128, 128, 3, norm_fn=norm_fn, padding=1, indice_key='subm3'),
+            block(128, 128, 3, norm_fn=norm_fn, padding=1, indice_key='subm3'),
+        )
+
+        self.conv4 = spconv.SparseSequential(
+            # [400, 352] <- [200, 176]
+            block(128, 256, 3, norm_fn=norm_fn, stride=2, padding=1, indice_key='spconv4', conv_type='spconv'),
+            block(256, 256, 3, norm_fn=norm_fn, padding=1, indice_key='subm4'),
+            block(256, 256, 3, norm_fn=norm_fn, padding=1, indice_key='subm4'),
+        )
+        
+    
+        self.num_point_features = 256
+        self.backbone_channels = {
+            'x_conv1': 32,
+            'x_conv2': 64,
+            'x_conv3': 128,
+            'x_conv4': 256,
+        }
+
+
+    def forward(self, batch_dict):
+        bev=points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
+        batch_dict['bev']=bev
+        coords,features=convert_bev_to_sparse(bev)
+        
+        batch_size = batch_dict['batch_size']
+        input_sp_tensor = spconv.SparseConvTensor(
+            features=features,
+            indices=coords.int(),
+            spatial_shape=self.sparse_shape,
+            batch_size=batch_size
+        )
+        
+        x_conv1 = self.conv1(input_sp_tensor)
+        x_conv2 = self.conv2(x_conv1)
+        x_conv3 = self.conv3(x_conv2)
+        x_conv4 = self.conv4(x_conv3)
+        x_conv4 = x_conv4.dense()
+        print(x_conv4.shape)
+        exit()
+        batch_dict['spatial_features_2d'] = x_conv4
+        """ batch_dict.update({
+            'multi_scale_2d_features': {
+                'x_conv1': x_conv1,
+                'x_conv2': x_conv2,
+                'x_conv3': x_conv3,
+                'x_conv4': x_conv4,
+                
+            }
+        })
+        batch_dict.update({
+            'multi_scale_2d_strides': {
+                'x_conv1': 1,
+                'x_conv2': 2,
+                'x_conv3': 4,
+                'x_conv4': 8,
+                'x_conv5': 16,
+            }
+        }) """
+
         return batch_dict
