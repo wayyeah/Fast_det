@@ -343,9 +343,7 @@ class BEVSPConvV4(nn.Module):
         bev=points_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
         batch_dict['bev']=bev
         coords,combined_features=convert_bev_to_sparse(bev)
-       
         input_tensor=self.input_layer([coords,combined_features])
-        
         batch_dict['spatial_features'] = self.conv_layers(input_tensor)[:,:,:self.size[1],:self.size[0]]
         """ print("batch_dict['spatial_features'].shape",batch_dict['spatial_features'].shape)
         np.save("/home/xmu/projects/xmuda/yw/Fast_det/bev_features.npy",batch_dict['spatial_features'].cpu().detach().numpy())

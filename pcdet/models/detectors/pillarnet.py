@@ -33,7 +33,7 @@ class PillarNet(Detector3DTemplate):
         loss = loss_rpn
         return loss, tb_dict, disp_dict
 
-    def post_processing(self, batch_dict):
+    """ def post_processing(self, batch_dict):
         post_process_cfg = self.model_cfg.POST_PROCESSING
         batch_size = batch_dict['batch_size']
         final_pred_dict = batch_dict['final_box_dicts']
@@ -47,4 +47,4 @@ class PillarNet(Detector3DTemplate):
                 thresh_list=post_process_cfg.RECALL_THRESH_LIST
             )
 
-        return final_pred_dict, recall_dict
+        return final_pred_dict, recall_dict """
