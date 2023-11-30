@@ -55,15 +55,21 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
     if cfg.LOCAL_RANK == 0:
         progress_bar = tqdm.tqdm(total=len(dataloader), leave=True, desc='eval', dynamic_ncols=True)
     start_time = time.time()
+    times={}
+    count=0
     for i, batch_dict in enumerate(dataloader):
+        count+=1
         load_data_to_gpu(batch_dict)
 
         if getattr(args, 'infer_time', False):
             start_time = time.time()
 
         with torch.no_grad():
-            pred_dicts, ret_dict = model(batch_dict)
-
+            pred_dicts, ret_dict,module_times = model(batch_dict)
+        for key in module_times:
+            if key not in times:
+                times[key]=0
+            times[key]+=module_times[key]
         disp_dict = {}
 
         if getattr(args, 'infer_time', False):
@@ -81,7 +87,8 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
         if cfg.LOCAL_RANK == 0:
             progress_bar.set_postfix(disp_dict)
             progress_bar.update()
-
+    for key in times:
+        print(key,":",times[key]/count)
     if cfg.LOCAL_RANK == 0:
         progress_bar.close()
 

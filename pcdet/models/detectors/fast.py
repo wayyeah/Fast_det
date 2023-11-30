@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from pcdet.utils.bbloss import bb_loss
 from ..model_utils.model_nms_utils import class_agnostic_nms
-
+import time
 from ...ops.roiaware_pool3d import roiaware_pool3d_utils
 class Fast(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
@@ -12,8 +12,11 @@ class Fast(Detector3DTemplate):
 
     def forward(self, batch_dict):
         batch_dict['dataset_cfg'] = self.dataset.dataset_cfg
+        batch_dict['time']={}
         for cur_module in self.module_list:
+            st=time.time()
             batch_dict = cur_module(batch_dict)
+            batch_dict['time'][cur_module.__class__.__name__]=(time.time()-st)
         if self.training:
             loss, tb_dict, disp_dict = self.get_training_loss()
 
@@ -30,7 +33,7 @@ class Fast(Detector3DTemplate):
                 np.save("/mnt/4tssd1/yw/Fast_det/gt_boxes.npy",batch_dict['gt_boxes'].cpu().detach().numpy())
                 np.save("/mnt/4tssd1/yw/Fast_det/pred_boxes.npy",pred_dicts[0]['pred_boxes'].cpu().detach().numpy())
                 exit() """
-            return pred_dicts, recall_dicts
+            return pred_dicts, recall_dicts,batch_dict['time']
 
     def get_training_loss(self):
         disp_dict = {}
