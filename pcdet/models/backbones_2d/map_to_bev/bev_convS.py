@@ -2,6 +2,7 @@ import torch.nn as nn
 import numpy as np
 import torch 
 import torch.nn.functional as F
+from tqdm import tqdm
 def points_to_bev(points, point_range, batch_size,size):
     x_scale_factor = size[0]/ (point_range[3] - point_range[0])
     y_scale_factor = size[1]/ (point_range[4] - point_range[1])
@@ -13,7 +14,6 @@ def points_to_bev(points, point_range, batch_size,size):
         x_pixel_values = ((points[:, 1] + (point_range[3] - point_range[0]) / 2) * x_scale_factor).to(torch.int)
     y_pixel_values = ((points[:, 2] + (point_range[4] - point_range[1]) / 2) * y_scale_factor).to(torch.int)
     z_values = points[:, 3]
-    z_values_normalized = (z_values - z_values.min()) / (z_values.max() - z_values.min())
     mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
     batch_indices = points[mask, 0].long()
     x_indices = x_pixel_values[mask]
@@ -40,7 +40,35 @@ def points_to_bev_zmin(points, point_range, batch_size,size):
     z_vals=z_values[mask] #取消z正则化                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
     bev[batch_indices, 0, y_indices, x_indices] = torch.minimum(bev[batch_indices, 0, y_indices, x_indices], z_vals)
     return bev
-
+def points_nums_to_bev(points, point_range, batch_size,size):
+    
+    x_scale_factor = size[0]/ (point_range[3] - point_range[0])
+    y_scale_factor = size[1]/ (point_range[4] - point_range[1])
+    bev_shape = (batch_size, 1, size[1] , size[0] )
+    bev = torch.zeros(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    bev_height_sum = torch.zeros(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    z_values = points[:, 3]
+    if(point_range[0]==0):
+        x_pixel_values = ((points[:, 1] ) * x_scale_factor).to(torch.int)
+    else:    
+        x_pixel_values = ((points[:, 1] + (point_range[3] - point_range[0]) / 2) * x_scale_factor).to(torch.int)
+    y_pixel_values = ((points[:, 2] + (point_range[4] - point_range[1]) / 2) * y_scale_factor).to(torch.int)
+    mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
+    batch_indices = points[mask, 0].long()
+    x_indices = x_pixel_values[mask]
+    y_indices = y_pixel_values[mask]
+    z_vals = z_values[mask]
+    indices = torch.stack([batch_indices, torch.zeros_like(batch_indices), y_indices, x_indices], dim=1)
+    
+    # 计算每个网格的点数
+    bev_height_sum = bev_height_sum.index_put_(tuple(indices.t()), z_vals.unsqueeze(1), accumulate=True)
+    ones = torch.ones_like(batch_indices, dtype=torch.float32)
+    bev = bev.index_put_(tuple(indices.t()), ones, accumulate=True)   
+    bev[bev == 0] = 1
+    bev_average_z = bev_height_sum / bev 
+    bev/=50
+    return bev,bev_average_z
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
 def intensity_to_bev(points, point_range, batch_size,size):
     x_scale_factor = size[0]/ (point_range[3] - point_range[0])
     y_scale_factor = size[1]/ (point_range[4] - point_range[1])
@@ -310,7 +338,7 @@ class BEVConvSV5(nn.Module):
         return batch_dict        
     
     
-class BEVConvSZMIN(nn.Module):
+class BEVConvSV8(nn.Module):#多种特征
     def __init__(self, model_cfg, **kwargs):
         super().__init__()
         self.model_cfg = model_cfg
@@ -319,7 +347,50 @@ class BEVConvSZMIN(nn.Module):
         self.size=self.model_cfg.SIZE
         self.conv_layers = nn.Sequential(
             # Existing layers
-            nn.Conv2d(3, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
+            nn.Conv2d(4, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
+            nn.Conv2d(8, 12, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(12),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
+            nn.Conv2d(12, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
+            nn.BatchNorm2d(self.num_bev_features),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
+        )
+    def forward(self, batch_dict):
+        """
+        Args:
+            batch_dict:
+                encoded_spconv_tensor: sparse tensor
+        Returns:
+            batch_dict:
+                spatial_features:
+
+        """
+        #self.size=[200,176]
+       
+        bev_points,bev_zmean=points_nums_to_bev(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
+        bev_intensity = intensity_to_bev(batch_dict['points'], self.point_range, batch_dict['batch_size'], self.size)
+        bev_zmin=points_to_bev_zmin(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
+        bev_combined = torch.cat([bev_points, bev_intensity,bev_zmean,bev_zmin], dim=1)  # Stack along the channel dimensionW
+        batch_dict['bev'] = bev_combined
+        spatial_features = self.conv_layers(bev_combined)
+        batch_dict['spatial_features'] = (spatial_features)
+        return batch_dict
+    
+class BEVConvSV7(nn.Module):
+    def __init__(self, model_cfg, **kwargs):
+        super().__init__()
+        self.model_cfg = model_cfg
+        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
+        self.point_range=self.model_cfg.POINT_CLOUD_RANGE
+        self.size=self.model_cfg.SIZE
+        self.conv_layers = nn.Sequential(
+            # Existing layers
+            nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
@@ -331,6 +402,7 @@ class BEVConvSZMIN(nn.Module):
             DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
             # Final layers
             nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
             nn.BatchNorm2d(self.num_bev_features),
@@ -351,8 +423,6 @@ class BEVConvSZMIN(nn.Module):
         batch_dict['bev']=bev
         bev_intensity = intensity_to_bev(batch_dict['points'], self.point_range, batch_dict['batch_size'], self.size)
         bev_combined = torch.cat([bev, bev_intensity], dim=1)  # Stack along the channel dimension
-        bev_zmin=points_to_bev_zmin(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
-        bev_combined = torch.cat([bev_zmin, bev_combined], dim=1)
         batch_dict['bev'] = bev_combined
         spatial_features = self.conv_layers(bev_combined)
         batch_dict['spatial_features'] = (spatial_features)

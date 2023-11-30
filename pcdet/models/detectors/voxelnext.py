@@ -8,7 +8,6 @@ class VoxelNeXt(Detector3DTemplate):
     def forward(self, batch_dict):
         batch_dict['time']={}
         for cur_module in self.module_list:
-            batch_dict = cur_module(batch_dict)
             st=time.time()
             batch_dict = cur_module(batch_dict)
             batch_dict['time'][cur_module.__class__.__name__]=(time.time()-st)
