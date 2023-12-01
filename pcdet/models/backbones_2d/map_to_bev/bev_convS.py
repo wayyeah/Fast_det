@@ -306,7 +306,7 @@ class BEVConvSV4(nn.Module):
             nn.BatchNorm2d(self.num_bev_features),
             nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
             nn.ReLU(),
-           
+ 
         )
     def forward(self, batch_dict):
         """
@@ -492,3 +492,45 @@ class BEVConvSV10(nn.Module):#多种特征
         batch_dict['spatial_features'] = (self.maxpool(bev_combined))
         return batch_dict
     
+    
+class BEVConvSV4_3(nn.Module):#多种特征
+    def __init__(self, model_cfg, **kwargs):
+        super().__init__()
+        self.model_cfg = model_cfg
+        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
+        self.point_range=self.model_cfg.POINT_CLOUD_RANGE
+        self.size=self.model_cfg.SIZE
+        self.conv_layers = nn.Sequential(
+            # Existing layers
+            nn.Conv2d(5, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.Conv2d(8, 8, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            # Final layers
+            nn.Conv2d(16, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
+            nn.BatchNorm2d(self.num_bev_features),
+            nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
+            nn.ReLU(),
+ 
+        )
+    def forward(self, batch_dict):
+        """
+        Args:
+            batch_dict:
+                encoded_spconv_tensor: sparse tensor
+        Returns:
+            batch_dict:
+                spatial_features:
+
+        """
+        bev,bev_average_z,bev_zmin,bev_zmax,bev_i =points_to_bevs(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
+        bev_combined = torch.cat([bev,bev_average_z,bev_zmin,bev_zmax,bev_i], dim=1)  # Stack along the channel dimensionW
+        batch_dict['bev'] = bev_combined
+        spatial_features = self.conv_layers(bev_combined)
+        batch_dict['spatial_features'] = (spatial_features)
+        return batch_dict

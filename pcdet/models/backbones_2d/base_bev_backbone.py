@@ -1,6 +1,31 @@
 import numpy as np
 import torch
 import torch.nn as nn
+class DepthwiseSeparableConvWithShuffle(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, padding,bias=True):
+        super().__init__()
+        self.depthwise = nn.Conv2d(in_channels, in_channels, kernel_size=kernel_size, stride=stride, padding=padding, groups=in_channels,bias=bias)
+        self.pointwise = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1,bias=bias)
+        self.shuffle = ChannelShuffle(groups=in_channels)
+
+    def forward(self, x):
+        x = self.depthwise(x)
+        x = self.shuffle(x)
+        x = self.pointwise(x)
+        return x
+
+class ChannelShuffle(nn.Module):
+    def __init__(self, groups):
+        super().__init__()
+        self.groups = groups
+
+    def forward(self, x):
+        batch_size, num_channels, height, width = x.size()
+        channels_per_group = num_channels // self.groups
+        x = x.view(batch_size, self.groups, channels_per_group, height, width)
+        x = torch.transpose(x, 1, 2).contiguous()
+        x = x.view(batch_size, -1, height, width)
+        return x
 
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding,bias=True):
@@ -386,13 +411,13 @@ class BaseBEVBackboneWise(nn.Module):
         for idx in range(num_levels):
             cur_layers = [
                 nn.ZeroPad2d(1),
-                DepthwiseSeparableConv(c_in_list[idx], num_filters[idx], kernel_size=3, stride=layer_strides[idx], padding=0, bias=False),
+                DepthwiseSeparableConvWithShuffle(c_in_list[idx], num_filters[idx], kernel_size=3, stride=layer_strides[idx], padding=0, bias=False),
                 nn.BatchNorm2d(num_filters[idx], eps=1e-3, momentum=0.01),
                 nn.ReLU()
             ]
             for k in range(layer_nums[idx]):
                 cur_layers.extend([
-                    DepthwiseSeparableConv(num_filters[idx], num_filters[idx], kernel_size=3, stride=1,padding=1, bias=False),
+                    DepthwiseSeparableConvWithShuffle(num_filters[idx], num_filters[idx], kernel_size=3, stride=1,padding=1, bias=False),
                     nn.BatchNorm2d(num_filters[idx], eps=1e-3, momentum=0.01),
                     nn.ReLU()
                 ])
@@ -412,7 +437,7 @@ class BaseBEVBackboneWise(nn.Module):
                 else:
                     stride = np.round(1 / stride).astype(np.int)
                     self.deblocks.append(nn.Sequential(
-                        DepthwiseSeparableConv(num_filters[idx],num_upsample_filters[idx],kernel_size=stride, stride=stride,padding=0, bias=False),
+                        DepthwiseSeparableConvWithShuffle(num_filters[idx],num_upsample_filters[idx],kernel_size=stride, stride=stride,padding=0, bias=False),
                         nn.BatchNorm2d(num_upsample_filters[idx], eps=1e-3, momentum=0.01),
                         nn.ReLU()
                     ))
