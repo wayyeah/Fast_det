@@ -647,3 +647,65 @@ def calculate_iou_reg_loss_centerhead(batch_box_preds, mask, ind, gt_boxes):
 
     loss = (1.0 - iou).sum() / torch.clamp(mask.sum(), min=1e-4)
     return loss
+class SigmoidQualityFocalClassificationLoss(nn.Module):
+    """
+    Sigmoid focal cross entropy loss.
+    """
+
+    def __init__(self, gamma: float = 2.0, alpha: float = 0.25):
+        """
+        Args:
+            gamma: Weighting parameter to balance loss for hard and easy examples.
+        """
+        super(SigmoidQualityFocalClassificationLoss, self).__init__()
+        self.gamma = gamma
+        self.alpha = alpha
+
+    def forward(self, input: torch.Tensor, target: torch.Tensor, weights: torch.Tensor):
+        # alpha_weight = target * self.alpha + (1 - target) * (1 - self.alpha)
+        func = F.binary_cross_entropy_with_logits
+        # negatives are supervised by 0 quality score
+        pred_sigmoid = torch.sigmoid(input)
+        scale_factor = pred_sigmoid
+        zerolabel = scale_factor.new_zeros(input.shape)
+        loss = func(input, zerolabel, reduction='none') * scale_factor.pow(self.gamma)
+
+        # positives are supervised by bbox quality (IoU) score
+        positives = target > 0
+        scale_factor = target[positives] - pred_sigmoid[positives]
+        loss[positives] = func(input[positives], target[positives], reduction='none') * scale_factor.abs().pow(self.gamma)
+
+        if weights.shape.__len__() == 2 or \
+                (weights.shape.__len__() == 1 and target.shape.__len__() == 2):
+            weights = weights.unsqueeze(-1)
+
+        assert weights.shape.__len__() == loss.shape.__len__()
+
+        return loss * weights * self.alpha
+
+
+class DistributionFocalLoss(nn.Module):
+    """
+    Sigmoid focal cross entropy loss.
+    """
+
+    def __init__(self, loss_weight: float = 0.25):
+        """
+        Args:
+            gamma: Weighting parameter to balance loss for hard and easy examples.
+        """
+        super(DistributionFocalLoss, self).__init__()
+        self.loss_weight = loss_weight
+
+    def forward(self, input: torch.Tensor, target: torch.Tensor, weights: torch.Tensor):
+        # alpha_weight = target * self.alpha + (1 - target) * (1 - self.alpha)
+        dis_left = target.long()
+        dis_right = dis_left + 1
+        weight_left = dis_right.float() - target
+        weight_right = target - dis_left.float()
+        # pdb.set_trace()
+        loss = F.cross_entropy(input, dis_left, reduction='none') * weight_left \
+            + F.cross_entropy(input, dis_right, reduction='none') * weight_right
+        
+
+        return loss * weights * self.loss_weight
