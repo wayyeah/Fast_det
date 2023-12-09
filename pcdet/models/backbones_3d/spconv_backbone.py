@@ -146,16 +146,32 @@ class VoxelBackBone8x(nn.Module):
             batch_size=batch_size
         )
 
+        print(input_sp_tensor.dense().shape)
+       
         x = self.conv_input(input_sp_tensor)
-
+        print(x.dense().shape)
         x_conv1 = self.conv1(x)
+        print( x_conv1.dense().shape)
+        N, C, D, H, W =  x_conv1.dense().shape
+        import numpy as np
+        t=x_conv1.dense().view(N, C * D, H, W)
+        """ np.save("/mnt/16THDD/yw/Fast_det/bev.npy", t[:,300:350,:,:].cpu().numpy())
+        exit() """
+        
         x_conv2 = self.conv2(x_conv1)
+        print( x_conv2.dense().shape)
         x_conv3 = self.conv3(x_conv2)
+        print( x_conv3.dense().shape)
         x_conv4 = self.conv4(x_conv3)
-
+        print( x_conv4.dense().shape)
         # for detection head
         # [200, 176, 5] -> [200, 176, 2]
         out = self.conv_out(x_conv4)
+        print( out.dense().shape)
+        N, C, D, H, W =  out.dense().shape
+        import numpy as np
+        np.save("/mnt/16THDD/yw/Fast_det/bev.npy", out.dense().view(N, C * D, H, W).cpu().numpy())
+        exit()
 
         batch_dict.update({
             'encoded_spconv_tensor': out,
