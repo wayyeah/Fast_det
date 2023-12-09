@@ -1,5 +1,5 @@
 from .height_compression import HeightCompression
-from .pointpillar_scatter import PointPillarScatter, PointPillarScatter3d
+from .pointpillar_scatter import PointPillarScatter, PointPillarScatter3d,PointPillarScatterOurs
 from .conv2d_collapse import Conv2DCollapse
 from .bev_conv import BEVConv
 from .bev_convU import BEVConvU
@@ -59,4 +59,5 @@ __all__ = {
     'BEVConvSNormalV2':BEVConvSNormalV2,
     'BEVKD':BEVKD,
     'BEVKDV2':BEVKDV2,
+    'PointPillarScatterOurs':PointPillarScatterOurs,
 }

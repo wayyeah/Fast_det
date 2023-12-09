@@ -55,8 +55,10 @@ def points_to_bevs_all(points, point_range, batch_size,size):
     bev_average_z = bev_height_sum / bev 
     bev/=50
     bev_zmax[batch_indices, 0, y_indices, x_indices] = torch.maximum(bev_zmax[batch_indices, 0, y_indices, x_indices], z_vals)
+    bev_zmin[batch_indices, 0, y_indices, x_indices] = torch.minimum(bev_zmin[batch_indices, 0, y_indices, x_indices], z_vals)
+   
     bev_i[batch_indices, 0, y_indices, x_indices] = torch.maximum(bev_i[batch_indices, 0, y_indices, x_indices], i_vals)
-    return torch.cat([bev,bev_average_z,bev_zmax,bev_i], dim=1)  
+    return torch.cat([bev,bev_zmin,bev_zmax,bev_i], dim=1)  
 class BEVKD(nn.Module):
     def __init__(self, model_cfg, **kwargs):
         super().__init__()
