@@ -133,5 +133,13 @@ if __name__ == '__main__':
                     'src/ingroup_inds_kernel.cu',
                 ]
             ),
+            make_cuda_ext(
+                name='points_to_bev_extension',
+                module='pcdet.ops.points_to_bev',
+                sources=[
+                    'src/points_to_bev_extension.cpp',
+                    'src/points_to_bev_kernel.cu',
+                ]
+            ),
         ],
     )
