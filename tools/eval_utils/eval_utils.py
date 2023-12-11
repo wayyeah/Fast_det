@@ -83,6 +83,8 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
             if 'backbone3d_flops' in batch_dict:
                 print("backbone3d Flpos:% .4fG"%(batch_dict['backbone3d_flops']/1000000000))
                 print("total Flpos:% .4fG"%((Flops+batch_dict['backbone3d_flops'])/1000000000))
+                print("backbone3d params:% .4fM"%(batch_dict['backbone3d_params']/1000000))
+                print("total params:% .4fM"%((params+batch_dict['backbone3d_params'])/1000000))
             print('params参数量: % .4fM'% (params / 1000000)) #参数量：等价与上面的summary输出的Total params值
             
         statistics_info(cfg, ret_dict, metric, disp_dict)
