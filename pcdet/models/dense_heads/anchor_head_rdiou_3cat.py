@@ -219,11 +219,31 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
         u, rdiou = self.get_rdiou(box_preds, box_reg_targets)
         rdiou_loss_n = rdiou - u
         rdiou_loss_n = torch.clamp(rdiou_loss_n,min=-1.0,max = 1.0)
+        
         rdiou_loss_m = 1 - rdiou_loss_n
         rdiou_loss_src = rdiou_loss_m * reg_weights
-        rdiou_loss = rdiou_loss_src.sum() / batch_size
+        
+        
+        #print("before", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
+        # 调整权重
+        # 对于 IoU > iou_threshold_high 的减少权重
+        # 对于 IoU < iou_threshold_low 的增加权重
+        weight_factor = torch.ones_like(rdiou)
+        iou_threshold_high=0.7
+        iou_threshold_low=0.65
+        weight_factor[rdiou > iou_threshold_high] *= 0.5  # 例如，可以减少 50% 的权重
+        weight_factor[rdiou < iou_threshold_low] *= 2.0  # 例如，可以增加 100% 的权重
+        rdiou_loss_src = rdiou_loss_src * weight_factor
 
+
+
+        rdiou_loss = rdiou_loss_src.sum() / batch_size
         rdiou_loss = rdiou_loss * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight']
+        #print("after", rdiou_loss)
+        
+        
+        
+        
         box_loss = rdiou_loss
         tb_dict = {
             'rpn_loss_loc': rdiou_loss.item()
