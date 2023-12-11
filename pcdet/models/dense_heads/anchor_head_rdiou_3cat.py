@@ -217,8 +217,6 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                                    box_preds.shape[-1])
 
         u, rdiou = self.get_rdiou(box_preds, box_reg_targets)
-
-
         rdiou_loss_n = rdiou - u
         rdiou_loss_n = torch.clamp(rdiou_loss_n,min=-1.0,max = 1.0)
         rdiou_loss_m = 1 - rdiou_loss_n
