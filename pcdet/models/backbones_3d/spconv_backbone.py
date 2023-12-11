@@ -3,7 +3,7 @@ from functools import partial
 import torch.nn as nn
 
 from ...utils.spconv_utils import replace_feature, spconv
-
+from ..model_utils.flops_utils import calculate_gemm_flops
 
 def post_act_block(in_channels, out_channels, kernel_size, indice_key=None, stride=1, padding=0,
                    conv_type='subm', norm_fn=None):
@@ -193,7 +193,16 @@ class VoxelBackBone8x(nn.Module):
                 'x_conv4': 8,
             }
         })
-
+        in_out_channels = [[(4, 16), ], [(16, 16), ], [(16, 32), (32, 32), (32, 32)], [(32, 64), (64, 64), (64, 64)],
+                        [(64, 64), (64, 64), (64, 64)], [(64, 128), ]]
+        indice_keys = [['subm1'], ['subm1'], ['spconv2', 'subm2', 'subm2'], ['spconv3', 'subm3', 'subm3'],
+                        ['spconv4', 'subm4', 'subm4'], ['spconv_down2']]
+        backbone3d_flops = 0
+        for out_tensor, in_out_channel_list, indice_keys_list in zip([x, x_conv1, x_conv2, x_conv3, x_conv4, out],
+                                                                    in_out_channels, indice_keys):
+            for (inchannel, outchannel), indice_key in zip(in_out_channel_list, indice_keys_list):
+                backbone3d_flops += calculate_gemm_flops(out_tensor, batch_dict,indice_key, inchannel, outchannel)
+        batch_dict['backbone3d_flops'] = backbone3d_flops
         return batch_dict
 
 
