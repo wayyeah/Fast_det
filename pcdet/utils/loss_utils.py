@@ -709,3 +709,7 @@ class DistributionFocalLoss(nn.Module):
         
 
         return loss * weights * self.loss_weight
+    
+def smooth_weight_factor(rdiou, iou_threshold_high=0.7, alpha=10, beta=1):
+    
+    return -(alpha - beta)/(torch.exp(10*iou_threshold_high - 10*rdiou) + 1) + (alpha - beta)/(torch.exp(torch.tensor(10*iou_threshold_high - 10)) + 1)
