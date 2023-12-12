@@ -214,6 +214,11 @@ class BEVConvS(nn.Module):
         bev_intensity = intensity_to_bev(batch_dict['points'], self.point_range, batch_dict['batch_size'], self.size)
         bev_combined = torch.cat([bev, bev_intensity], dim=1)  # Stack along the channel dimension
         batch_dict['bev'] = bev_combined
+        
+        """ import numpy as np
+        np.save('/mnt/16THDD/yw/Fast_det/bev.npy',bev_combined.cpu().numpy())
+        np.save('/mnt/16THDD/yw/Fast_det/points.npy',batch_dict['points'].cpu().numpy())
+        exit() """
         spatial_features = self.conv_layers(bev_combined)
         batch_dict['spatial_features'] = (spatial_features)
         return batch_dict

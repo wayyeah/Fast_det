@@ -65,7 +65,7 @@ MODEL:
                 'unmatched_threshold': 0.35
             }
         ]
-
+        
         TARGET_ASSIGNER_CONFIG:
             NAME: AxisAlignedTargetAssigner
             POS_FRACTION: -1.0
