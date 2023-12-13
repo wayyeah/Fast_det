@@ -234,11 +234,11 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
         if self.model_cfg.get("REWEIGHT", None):
             reweight_type=self.model_cfg.REWEIGHT.get("TYPE",0)
             
-            #mask=rdiou>=0.7
-            #print("high loss",rdiou_loss_src[mask].sum())
-            #mask=rdiou<0.7
-            #print("low loss",rdiou_loss_src[mask].sum())
-            #print("before", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
+            # mask=rdiou>=0.7
+            # print("high loss",rdiou_loss_src[mask].sum())
+            # mask=rdiou<0.7
+            # print("low loss",rdiou_loss_src[mask].sum())
+            # print("before", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
             if reweight_type==0:
                 
                 # 调整权重
@@ -250,6 +250,11 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                 weight_factor[rdiou > iou_threshold_high] *= 0.5  # 例如，可以减少 50% 的权重
                 weight_factor[rdiou < iou_threshold_low] *= 2.0  # 例如，可以增加 100% 的权重
                 rdiou_loss_src = rdiou_loss_src * weight_factor
+                # mask=rdiou>=0.7
+                # print("high loss",rdiou_loss_src[mask].sum())
+                # mask=rdiou<0.7
+                # print("low loss",rdiou_loss_src[mask].sum())
+                # print("after", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
             elif reweight_type==1:
                 weight_factor = torch.ones_like(rdiou)
                 iou_threshold_high=0.7
@@ -265,8 +270,24 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                 #print("low loss",rdiou_loss_src[mask].sum())
                 #print("after", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
             elif reweight_type==2:
+                rdiou_loss_n = rdiou 
+                rdiou_loss_m = 1 - rdiou_loss_n
+                rdiou_loss_src = rdiou_loss_m * reg_weights
+                u*=reg_weights
                 weight_factor=loss_utils.smooth_weight_factor(rdiou)
-                rdiou_loss_src = rdiou_loss_src * weight_factor
+                weight_factor=weight_factor/(1-rdiou)
+                #print("weight_factor",weight_factor[weight_factor>1])
+                weight_factor = torch.where(torch.isinf(weight_factor), torch.tensor(1.0), weight_factor)
+                weight_factor = torch.where(torch.isnan(weight_factor), torch.tensor(1.0), weight_factor)
+                #print("weight_factor",weight_factor[weight_factor>1])
+                #print("iou",rdiou)
+                #print(u.sum())
+                rdiou_loss_src = rdiou_loss_src * weight_factor+u
+                # mask=rdiou>=0.7
+                # print("high loss",rdiou_loss_src[mask].sum())
+                # mask=rdiou<0.7
+                # print("low loss",rdiou_loss_src[mask].sum())
+                # print("after", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
             elif reweight_type==3:
                 weight_factor = torch.ones_like(rdiou)
                 iou_threshold_high=0.7
