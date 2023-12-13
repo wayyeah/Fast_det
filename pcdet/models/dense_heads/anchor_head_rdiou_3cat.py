@@ -225,7 +225,7 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
         
         if self.model_cfg.get("REWEIGHT", None):
             reweight_type=self.model_cfg.REWEIGHT.get("TYPE",0)
-            print(reweight_type)
+            
             #mask=rdiou>=0.7
             #print("high loss",rdiou_loss_src[mask].sum())
             #mask=rdiou<0.7
@@ -258,6 +258,14 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                 #print("after", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
             elif reweight_type==2:
                 weight_factor=smooth_weight_factor(rdiou)
+                rdiou_loss_src = rdiou_loss_src * weight_factor
+            elif reweight_type==3:
+                weight_factor = torch.ones_like(rdiou)
+                iou_threshold_high=0.7
+                iou_threshold_low=0.5
+                mask_weight=torch.logical_and(rdiou < iou_threshold_high, rdiou >= iou_threshold_low)
+                weight_factor[rdiou > iou_threshold_high] *= 0.5  
+                weight_factor[mask_weight] *= 10.0 
                 rdiou_loss_src = rdiou_loss_src * weight_factor
         rdiou_loss = rdiou_loss_src.sum() / batch_size
         rdiou_loss = rdiou_loss * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight']

@@ -100,14 +100,30 @@ class BEVKD(nn.Module):
         """
         bev_combined=points_to_bevs_two(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
         batch_dict['bev'] = bev_combined
-        x=self.conv_layers_1(bev_combined)
-        x=self.max_pool2d(x)
-        x=self.conv_layers_2(x)
-        x=self.max_pool2d(x)
-        x=self.conv_layers_3(x)
-        x=self.max_pool2d(x)
-        spatial_features=self.conv_layers_4(x)
+        x_conv1=self.conv_layers_1(bev_combined)
+        x_conv1_maxpool=self.max_pool2d(x_conv1)
+        x_conv2=self.conv_layers_2(x_conv1_maxpool)
+        x_conv2_maxpool=self.max_pool2d(x_conv2)
+        x_conv3=self.conv_layers_3(x_conv2_maxpool)
+        x_conv3_maxpool=self.max_pool2d(x_conv3)
+        spatial_features=self.conv_layers_4(x_conv3_maxpool)
         batch_dict['spatial_features'] = (spatial_features)
+        batch_dict.update({
+            'multi_scale_2d_features': {
+                'x_conv1': x_conv1,
+                'x_conv2': x_conv2,
+                'x_conv3': x_conv3,
+                'x_conv4': x_conv3_maxpool,
+            }
+        })
+        batch_dict.update({
+            'multi_scale_2d_strides': {
+                'x_conv1': 1,
+                'x_conv2': 2,
+                'x_conv3': 4,
+                'x_conv4': 8,
+            }
+        })
         return batch_dict   
     
 class BEVKDV2(nn.Module):
