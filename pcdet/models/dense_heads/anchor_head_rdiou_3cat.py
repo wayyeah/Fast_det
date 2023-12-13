@@ -222,7 +222,15 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
         
         rdiou_loss_m = 1 - rdiou_loss_n
         rdiou_loss_src = rdiou_loss_m * reg_weights
-        
+        ''' print("pred box len",len(rdiou[0]),"len box_preds",len(box_preds[0]),"len box_reg_targets",len(box_reg_targets[0]))
+        for i in range(0,10):
+            iou_threshold_high=(i+1)*0.1
+            iou_threshold_low=iou_threshold_high-0.1
+            print("iou_threshold_low",iou_threshold_low,"iou_threshold_high",iou_threshold_high)
+            mask_weight = torch.logical_and(torch.logical_and(rdiou < iou_threshold_high, rdiou >= iou_threshold_low), reg_weights > 0)
+
+            print("len:",len(rdiou[mask_weight]))
+            print("loss:",rdiou_loss_src[mask_weight].sum()) '''
         if self.model_cfg.get("REWEIGHT", None):
             reweight_type=self.model_cfg.REWEIGHT.get("TYPE",0)
             
@@ -257,7 +265,7 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                 #print("low loss",rdiou_loss_src[mask].sum())
                 #print("after", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
             elif reweight_type==2:
-                weight_factor=smooth_weight_factor(rdiou)
+                weight_factor=loss_utils.smooth_weight_factor(rdiou)
                 rdiou_loss_src = rdiou_loss_src * weight_factor
             elif reweight_type==3:
                 weight_factor = torch.ones_like(rdiou)

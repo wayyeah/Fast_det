@@ -710,6 +710,11 @@ class DistributionFocalLoss(nn.Module):
 
         return loss * weights * self.loss_weight
     
-def smooth_weight_factor(rdiou, iou_threshold_high=0.7, alpha=10, beta=1):
+""" def smooth_weight_factor(rdiou, iou_threshold_high=0.7, alpha=10, beta=1):
     
-    return -(alpha - beta)/(torch.exp(10*iou_threshold_high - 10*rdiou) + 1) + (alpha - beta)/(torch.exp(torch.tensor(10*iou_threshold_high - 10)) + 1)
+    return -(alpha - beta)/(torch.exp(10*iou_threshold_high - 10*rdiou) + 1) + (alpha - beta)/(torch.exp(torch.tensor(10*iou_threshold_high - 10)) + 1) """
+
+def smooth_weight_factor(rdiou, threshold=0.65, steepness=20):
+    # 调整 Sigmoid 函数的中心点并增加斜率
+    sigmoid_center = threshold
+    return 1 - 1 / (1 + torch.exp(-steepness * (rdiou - sigmoid_center)))
