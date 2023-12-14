@@ -195,7 +195,6 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
         batch_size = int(box_preds.shape[0])
 
         box_cls_labels = box_cls_labels.view(batch_size, -1)
-
         positives = box_cls_labels > 0
         reg_weights = positives.float()
         pos_normalizer = positives.sum(1, keepdim=True).float()
@@ -270,7 +269,7 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                 #print("low loss",rdiou_loss_src[mask].sum())
                 #print("after", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
             elif reweight_type==2:
-              
+                print(" u",u)
                 rdiou_loss_n =(1-loss_utils.smooth_weight_factor(rdiou))-u
                 rdiou_loss_n = torch.clamp(rdiou_loss_n,min=-1.0,max = 1.0)
                 rdiou_loss_m=1-rdiou_loss_n
@@ -289,7 +288,7 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                 weight_factor[rdiou > iou_threshold_high] *= 0.5  
                 weight_factor[mask_weight] *= 10.0 
                 rdiou_loss_src = rdiou_loss_src * weight_factor
-            if reweight_type==4:
+            elif reweight_type==4:
                 # 调整权重
                 # 对于 IoU > iou_threshold_high 的减少权重
                 # 对于 IoU < iou_threshold_low 的增加权重
@@ -298,6 +297,15 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                 iou_threshold_low=0.7
                 weight_factor[rdiou > iou_threshold_high] *= 0.5  # 例如，可以减少 50% 的权重
                 weight_factor[rdiou < iou_threshold_low] *= 2.0  # 例如，可以增加 100% 的权重
+                rdiou_loss_src = rdiou_loss_src * weight_factor
+                # mask=rdiou>=0.7
+                # print("high loss",rdiou_loss_src[mask].sum())
+                # mask=rdiou<0.7
+                # print("low loss",rdiou_loss_src[mask].sum())
+                # print("after", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
+            if reweight_type==5:
+                weight_factor = loss_utils.smooth_weight_factor(rdiou)*2
+                
                 rdiou_loss_src = rdiou_loss_src * weight_factor
                 # mask=rdiou>=0.7
                 # print("high loss",rdiou_loss_src[mask].sum())
