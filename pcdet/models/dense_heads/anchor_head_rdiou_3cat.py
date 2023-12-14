@@ -304,14 +304,23 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                 # print("low loss",rdiou_loss_src[mask].sum())
                 # print("after", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
             if reweight_type==5:
-                weight_factor = loss_utils.smooth_weight_factor(rdiou)*2
-                
+                weight_factor = torch.ones_like(rdiou)
+                high_thresh=0.75
+                mid_thresh=0.5
+                low_thresh=0.25
+                # 对于高IoU区间的样本，减少权重
+                high_iou_mask = rdiou >= high_thresh
+                weight_factor[high_iou_mask] *= 0.5  # 例如，减少50%的权重
+
+                # 对于中等IoU区间的样本，根据IoU值动态调整权重
+                mid_iou_mask = torch.logical_and(rdiou >= mid_thresh, rdiou < high_thresh)
+                weight_factor[mid_iou_mask] *= (1 + 0.5 * (rdiou[mid_iou_mask] - mid_thresh))
+
+                # 对于低IoU区间的样本，增加权重
+                low_iou_mask = rdiou < low_thresh
+                weight_factor[low_iou_mask] *= 2.0  # 例如，增加100%的权重
                 rdiou_loss_src = rdiou_loss_src * weight_factor
-                # mask=rdiou>=0.7
-                # print("high loss",rdiou_loss_src[mask].sum())
-                # mask=rdiou<0.7
-                # print("low loss",rdiou_loss_src[mask].sum())
-                # print("after", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
+                
         rdiou_loss = rdiou_loss_src.sum() / batch_size
         rdiou_loss = rdiou_loss * self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight']
         #print("after", rdiou_loss)
