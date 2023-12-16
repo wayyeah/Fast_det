@@ -193,7 +193,6 @@ class BEVConvS(nn.Module):
             DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
-            # Final layers
             nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
@@ -219,8 +218,33 @@ class BEVConvS(nn.Module):
         np.save('/mnt/16THDD/yw/Fast_det/bev.npy',bev_combined.cpu().numpy())
         np.save('/mnt/16THDD/yw/Fast_det/points.npy',batch_dict['points'].cpu().numpy())
         exit() """
-        spatial_features = self.conv_layers(bev_combined)
-        batch_dict['spatial_features'] = (spatial_features)
+        for i, layer in enumerate(self.conv_layers):
+            bev_combined = layer( bev_combined)
+            if i==2:
+                x_conv1=bev_combined
+            if i==6:
+                x_conv2=bev_combined
+            if i==13:
+                x_conv3=bev_combined
+            if i==14:
+                x_conv4=bev_combined
+        batch_dict['spatial_features'] = (bev_combined)
+        batch_dict.update({
+            'multi_scale_2d_features': {
+                'x_conv1': x_conv1,
+                'x_conv2': x_conv2,
+                'x_conv3': x_conv3,
+                'x_conv4': x_conv4,
+            }
+        })
+        batch_dict.update({
+            'multi_scale_2d_strides': {
+                'x_conv1': 1,
+                'x_conv2': 2,
+                'x_conv3': 4,
+                'x_conv4': 8,
+            }
+        })
         return batch_dict
 class BEVConvSNormal(nn.Module):
     def __init__(self, model_cfg, **kwargs):
