@@ -99,7 +99,7 @@ class BEVKD(nn.Module):
             nn.ReLU(),
         )#b*8*1600*1408
         self.conv_layers_2=nn.Sequential(
-            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1,groups=8),
             nn.BatchNorm2d(16),
             nn.ReLU(),
         )
