@@ -16,8 +16,8 @@ def points_to_bev(points, point_range, batch_size,size):
     z_values = points[:, 3]
     mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
     batch_indices = points[mask, 0].long()
-    x_indices = x_pixel_values[mask]
-    y_indices = y_pixel_values[mask]
+    x_indices = x_pixel_values[mask].long()
+    y_indices = y_pixel_values[mask].long()
     #z_vals = z_values_normalized[mask]
     z_vals=z_values[mask] #取消z正则化                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
     bev[batch_indices, 0, y_indices, x_indices] = torch.maximum(bev[batch_indices, 0, y_indices, x_indices], z_vals)
@@ -35,8 +35,8 @@ def points_to_bev_zmin(points, point_range, batch_size,size):
     z_values = points[:, 3]
     mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
     batch_indices = points[mask, 0].long()
-    x_indices = x_pixel_values[mask]
-    y_indices = y_pixel_values[mask]
+    x_indices = x_pixel_values[mask].long()
+    y_indices = y_pixel_values[mask].long()
     z_vals=z_values[mask] #取消z正则化                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
     bev[batch_indices, 0, y_indices, x_indices] = torch.minimum(bev[batch_indices, 0, y_indices, x_indices], z_vals)
     return bev
@@ -55,8 +55,8 @@ def points_nums_to_bev(points, point_range, batch_size,size):
     y_pixel_values = ((points[:, 2] + (point_range[4] - point_range[1]) / 2) * y_scale_factor).to(torch.int)
     mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
     batch_indices = points[mask, 0].long()
-    x_indices = x_pixel_values[mask]
-    y_indices = y_pixel_values[mask]
+    x_indices = x_pixel_values[mask].long()
+    y_indices = y_pixel_values[mask].long()
     z_vals = z_values[mask]
     indices = torch.stack([batch_indices, torch.zeros_like(batch_indices), y_indices, x_indices], dim=1)
     
@@ -81,8 +81,8 @@ def intensity_to_bev(points, point_range, batch_size,size):
     intensity = points[:, 4]
     mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
     batch_indices = points[mask, 0].long()
-    x_indices = x_pixel_values[mask]
-    y_indices = y_pixel_values[mask]
+    x_indices = x_pixel_values[mask].long()
+    y_indices = y_pixel_values[mask].long()
     i_vals=intensity[mask]
     bev[batch_indices, 0, y_indices, x_indices] = torch.maximum(bev[batch_indices, 0, y_indices, x_indices], i_vals)
     return bev
@@ -162,8 +162,8 @@ def points_to_bevs_two(points, point_range, batch_size,size):
     i_values=points[:, 4]
     mask = (x_pixel_values < size[0]) & (x_pixel_values >= 0) & (y_pixel_values < size[1]) & (y_pixel_values >= 0)
     batch_indices = points[mask, 0].long()
-    x_indices = x_pixel_values[mask]
-    y_indices = y_pixel_values[mask]
+    x_indices = x_pixel_values[mask].long()
+    y_indices = y_pixel_values[mask].long()
     #z_vals = z_values_normalized[mask]
     z_vals=z_values[mask] #取消z正则化 
     i_vals=i_values[mask]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
@@ -214,7 +214,7 @@ class BEVConvS(nn.Module):
         bev_combined = torch.cat([bev, bev_intensity], dim=1)  # Stack along the channel dimension
         batch_dict['bev'] = bev_combined
         
-        """ import numpy as np
+        """import numpy as np
         np.save('/mnt/16THDD/yw/Fast_det/bev.npy',bev_combined.cpu().numpy())
         np.save('/mnt/16THDD/yw/Fast_det/points.npy',batch_dict['points'].cpu().numpy())
         exit() """
