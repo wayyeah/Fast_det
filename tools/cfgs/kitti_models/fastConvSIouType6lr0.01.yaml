@@ -11,7 +11,7 @@ MODEL:
 
 
     MAP_TO_BEV:
-        NAME: BEVConvSE
+        NAME: BEVConvS
         NUM_BEV_FEATURES: 32
         POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
         SIZE : [1408,1600]
@@ -103,7 +103,7 @@ OPTIMIZATION:
     NUM_EPOCHS: 240
 
     OPTIMIZER: adam_onecycle
-    LR: 0.003
+    LR: 0.01
     WEIGHT_DECAY: 0.01
     MOMENTUM: 0.9
 
