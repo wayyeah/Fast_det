@@ -1,7 +1,7 @@
 from .height_compression import HeightCompression
 from .pointpillar_scatter import PointPillarScatter, PointPillarScatter3d,PointPillarScatterOurs
 from .conv2d_collapse import Conv2DCollapse
-from .bev_conv import BEVConv
+from .bev_conv import BEVConv,BEVConvV2
 from .bev_convU import BEVConvU
 from .bev_convRes import BEVConvRes
 from .bev_convResH import BEVConvResH
@@ -13,6 +13,8 @@ from .bev_spconv import BEVSPConv,BEVSPConvV2,BEVSPConvV3,BEVSPConvV4
 from .bev_convS import BEVConvS,BEVConvSV2,BEVConvSV3,BEVConvSV4,BEVConvSV5,BEVConvSV8,BEVConvSV7,BEVConvSV10,BEVConvSV4_3,BEVConvSV4Wise,BEVConvSV4WiseV2,BEVConvSV3One,BEVConvSNormal,BEVConvSNormalV2
 from .bev_convFast import BEVConvFast,BEVConvFastV3
 from .bev_kd import BEVKD,BEVKDV2
+from .bev_convS import BEVConvSE,BEVConvSEV2,BEVConvCBAM
+
 __all__ = {
     'HeightCompression': HeightCompression,
     'PointPillarScatter': PointPillarScatter,
@@ -60,4 +62,8 @@ __all__ = {
     'BEVKD':BEVKD,
     'BEVKDV2':BEVKDV2,
     'PointPillarScatterOurs':PointPillarScatterOurs,
+    'BEVConvV2':BEVConvV2,
+    'BEVConvSE':BEVConvSE,
+    'BEVConvSEV2':BEVConvSEV2,
+    'BEVConvCBAM':BEVConvCBAM,
 }
