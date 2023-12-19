@@ -11,7 +11,7 @@ MODEL:
 
 
     MAP_TO_BEV:
-        NAME: BEVConvSEV2
+        NAME: BEVConvSEV3
         NUM_BEV_FEATURES: 32
         POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
         SIZE : [1408,1600]

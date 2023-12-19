@@ -357,8 +357,7 @@ class VoxelBackBone8xCut(nn.Module):
 
         self.conv4 = spconv.SparseSequential(
             # [400, 352, 11] <- [200, 176, 5]
-            block(64, 64, 3, norm_fn=norm_fn, stride=2, padding=(0, 1, 1), indice_key='spconv4', conv_type='spconv'),
-            block(64, 64, 3, norm_fn=norm_fn, padding=1, indice_key='subm4'),
+            block(64, 64, 3, norm_fn=norm_fn, stride=2, padding=(0, 1, 1), indice_key='spconv4', conv_type='spconv'), 
            
         )
 

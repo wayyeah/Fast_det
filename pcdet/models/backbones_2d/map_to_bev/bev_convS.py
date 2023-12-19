@@ -184,6 +184,7 @@ class SE(nn.Module):
         b, c, _, _ = x.size()
         y = self.squeeze(x)
         y = self.excitation(y)
+        
         return x * y
 
 # 通道注意力机制
@@ -450,6 +451,82 @@ class BEVConvSEV2(nn.Module):
             }
         })
         return batch_dict
+
+class BEVConvSEV3(nn.Module):
+    def __init__(self, model_cfg, **kwargs):
+        super().__init__()
+        self.model_cfg = model_cfg
+        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
+        self.point_range=self.model_cfg.POINT_CLOUD_RANGE
+        self.size=self.model_cfg.SIZE
+        self.conv_layers = nn.Sequential(
+            # Existing layers
+            nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            SE(8),
+            nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            SE(16),
+            nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
+            DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            SE(32),
+            nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
+            nn.BatchNorm2d(self.num_bev_features),
+            nn.ReLU(),
+            SE(32),
+            nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
+        )
+    def forward(self, batch_dict):
+        """
+        Args:
+            batch_dict:
+                encoded_spconv_tensor: sparse tensor
+        Returns:
+            batch_dict:
+                spatial_features:
+
+        """
+        bev_combined=points_to_bevs_two(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
+        batch_dict['bev'] = bev_combined
+        """ import numpy as np
+        np.save('/mnt/16THDD/yw/Fast_det/bev.npy',bev_combined.cpu().numpy())
+        np.save('/mnt/16THDD/yw/Fast_det/points.npy',batch_dict['points'].cpu().numpy())
+        exit() """
+        for i, layer in enumerate(self.conv_layers):
+            bev_combined = layer( bev_combined)
+            if i==2:
+                x_conv1=bev_combined
+            if i==6:
+                x_conv2=bev_combined
+            if i==13:
+                x_conv3=bev_combined
+            if i==14:
+                x_conv4=bev_combined
+        batch_dict['spatial_features'] = (bev_combined)
+        batch_dict.update({
+            'multi_scale_2d_features': {
+                'x_conv1': x_conv1,
+                'x_conv2': x_conv2,
+                'x_conv3': x_conv3,
+                'x_conv4': bev_combined,
+            }
+        })
+        batch_dict.update({
+            'multi_scale_2d_strides': {
+                'x_conv1': 1,
+                'x_conv2': 2,
+                'x_conv3': 4,
+                'x_conv4': 8,
+            }
+        })
+        return batch_dict
+
+
 
 class BEVConvCBAM(nn.Module):
     def __init__(self, model_cfg, **kwargs):
