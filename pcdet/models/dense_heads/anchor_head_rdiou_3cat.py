@@ -232,14 +232,12 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
             print("loss:",rdiou_loss_src[mask_weight].sum()) '''
         if self.model_cfg.get("REWEIGHT", None):
             reweight_type=self.model_cfg.REWEIGHT.get("TYPE",0)
-            
             # mask=rdiou>=0.7
             # print("high loss",rdiou_loss_src[mask].sum())
             # mask=rdiou<0.7
             # print("low loss",rdiou_loss_src[mask].sum())
             # print("before", rdiou_loss_src.sum() / batch_size* self.model_cfg.LOSS_CONFIG.LOSS_WEIGHTS['loc_weight'])
             if reweight_type==0:
-                
                 # 调整权重
                 # 对于 IoU > iou_threshold_high 的减少权重
                 # 对于 IoU < iou_threshold_low 的增加权重
