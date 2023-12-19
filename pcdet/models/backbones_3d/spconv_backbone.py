@@ -345,14 +345,13 @@ class VoxelBackBone8xCut(nn.Module):
         self.conv2 = spconv.SparseSequential(
             # [1600, 1408, 41] <- [800, 704, 21]
             block(16, 32, 3, norm_fn=norm_fn, stride=2, padding=1, indice_key='spconv2', conv_type='spconv'),
-            block(32, 32, 3, norm_fn=norm_fn, padding=1, indice_key='subm2'),
+            
           
         )
 
         self.conv3 = spconv.SparseSequential(
             # [800, 704, 21] <- [400, 352, 11]
             block(32, 64, 3, norm_fn=norm_fn, stride=2, padding=1, indice_key='spconv3', conv_type='spconv'),
-            block(64, 64, 3, norm_fn=norm_fn, padding=1, indice_key='subm3'),
            
         )
 
@@ -455,11 +454,7 @@ class VoxelBackBone8xCut(nn.Module):
                         ['spconv4', 'subm4', 'subm4'], ['spconv_down2']]
         backbone3d_flops = 0
         backbone3d_params=0
-        for out_tensor, in_out_channel_list, indice_keys_list in zip([x, x_conv1, x_conv2, x_conv3, x_conv4, out],
-                                                                    in_out_channels, indice_keys):
-            for (inchannel, outchannel), indice_key in zip(in_out_channel_list, indice_keys_list):
-                backbone3d_flops += calculate_gemm_flops(out_tensor, batch_dict,indice_key, inchannel, outchannel)
-                backbone3d_params+=calculate_sparse_conv_parameters(out_tensor,indice_key, inchannel, outchannel)
+        
         
         
         batch_dict['backbone3d_flops'] = backbone3d_flops
