@@ -2,7 +2,7 @@ import torch.nn as nn
 import numpy as np
 import torch 
 import torch.nn.functional as F
-
+from pcdet.utils.bev_utils import points_to_bevs_two
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -156,4 +156,50 @@ class BEVConvRes(nn.Module):
         ''' np.save("/home/xmu/yw/Fast_det/bev.npy",bev.cpu().numpy())
         exit() '''
         batch_dict['spatial_features'] =self.conv_layers(bev)
+        return batch_dict
+
+
+class BEVConvVGG16(nn.Module):
+    def __init__(self, model_cfg, **kwargs):
+        super(BEVConvVGG16, self).__init__()
+        self.model_cfg = model_cfg
+        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
+        self.point_range=self.model_cfg.POINT_CLOUD_RANGE
+        self.size=self.model_cfg.SIZE
+        self.features = nn.Sequential(
+            # input: batch_size x 3 x 224 x 224             b*2*1408*1600
+            nn.Conv2d(2, 32, kernel_size=3, padding=1),  # output: batch_size x 64 x 224 x 224          b*64*1408*1600
+            nn.ReLU(inplace=True),
+            nn.Conv2d(32, 32, kernel_size=3, padding=1), # output: batch_size x 64 x 224 x 224          b*64*1408*1600
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),      # output: batch_size x 64 x 112 x 112           b*64*704*800
+
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),# output: batch_size x 128 x 112 x 112         b*128*704*800
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),# output: batch_size x 128 x 112 x 112         b*128*704*800
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),       # output: batch_size x 128 x 56 x 56           b*128*352*400
+
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),# output: batch_size x 256 x 56 x 56          b*256*352*400
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128,128, kernel_size=3, padding=1),# output: batch_size x 256 x 56 x 56         b*256*352*400
+            nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, kernel_size=3, padding=1),# output: batch_size x 256 x 56 x 56          b*256*352*400
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),        # output: batch_size x 256 x 28 x 28         b*256*176*200
+
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),# output: batch_size x 512 x 28 x 28           b*512*176*200
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),# output: batch_size x 512 x 28 x 28         b*512*176*200
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),# output: batch_size x 512 x 28 x 28          b*512*176*200
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, batch_dict):
+        bev_combined=points_to_bevs_two(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
+        batch_dict['bev'] = bev_combined
+        bev_combined = self.features(bev_combined)
+        batch_dict['spatial_features'] =bev_combined
+    
         return batch_dict
