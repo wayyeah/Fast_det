@@ -332,32 +332,32 @@ class VoxelBackBone8xCut(nn.Module):
         self.sparse_shape = grid_size[::-1] + [1, 0, 0]
 
         self.conv_input = spconv.SparseSequential(
-            spconv.SubMConv3d(input_channels, 16, 3, padding=1, bias=False, indice_key='subm1'),
-            norm_fn(16),
+            spconv.SubMConv3d(input_channels, 8, 3, padding=1, bias=False, indice_key='subm1'),
+            norm_fn(8),
             nn.ReLU(),
         )
         block = post_act_block
 
         self.conv1 = spconv.SparseSequential(
-            block(16, 16, 3, norm_fn=norm_fn, padding=1, indice_key='subm1'),
+            block(8, 8, 3, norm_fn=norm_fn, padding=1, indice_key='subm1'),
         )
 
         self.conv2 = spconv.SparseSequential(
             # [1600, 1408, 41] <- [800, 704, 21]
-            block(16, 32, 3, norm_fn=norm_fn, stride=2, padding=1, indice_key='spconv2', conv_type='spconv'),
+            block(8, 16, 3, norm_fn=norm_fn, stride=2, padding=1, indice_key='spconv2', conv_type='spconv'),
             
           
         )
 
         self.conv3 = spconv.SparseSequential(
             # [800, 704, 21] <- [400, 352, 11]
-            block(32, 64, 3, norm_fn=norm_fn, stride=2, padding=1, indice_key='spconv3', conv_type='spconv'),
+            block(16, 32, 3, norm_fn=norm_fn, stride=2, padding=1, indice_key='spconv3', conv_type='spconv'),
            
         )
 
         self.conv4 = spconv.SparseSequential(
             # [400, 352, 11] <- [200, 176, 5]
-            block(64, 64, 3, norm_fn=norm_fn, stride=2, padding=(0, 1, 1), indice_key='spconv4', conv_type='spconv'), 
+            block(32, 64, 3, norm_fn=norm_fn, stride=2, padding=(0, 1, 1), indice_key='spconv4', conv_type='spconv'), 
            
         )
 
