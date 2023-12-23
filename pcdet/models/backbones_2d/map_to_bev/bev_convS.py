@@ -518,10 +518,10 @@ class BEVConvSEV2(nn.Module):
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
-            RepVGGBlock(in_channels=8, out_channels=16, kernel_size=3, stride=2, padding=1,deploy=deploy),
+            RepVGGBlock(in_channels=8, out_channels=8, kernel_size=3, stride=2, padding=1,deploy=deploy),
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
             DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
@@ -546,9 +546,9 @@ class BEVConvSEV2(nn.Module):
         bev_combined=points_to_bevs_two(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
         batch_dict['bev'] = bev_combined
         if(self.training==False):
-            self.conv_layers[0].switch_to_deploy()
-            self.conv_layers[1].switch_to_deploy()
-            self.conv_layers[2].switch_to_deploy()
+            for module in self.conv_layers.modules():
+                if module.__class__.__name__=='RepVGGBlock':
+                    module.switch_to_deploy()
         bev_combined=self.conv_layers(bev_combined)
         batch_dict['spatial_features'] = (bev_combined)
         

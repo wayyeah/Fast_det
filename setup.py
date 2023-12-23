@@ -141,5 +141,10 @@ if __name__ == '__main__':
                     'src/points_to_bev_kernel.cu',
                 ]
             ),
+            make_cuda_ext(
+                name='iou3d_cuda',
+                module='pcdet.ops.iou3d',
+                sources=["src/iou3d.cpp", "src/iou3d_cpu.cpp",  "src/iou3d_kernel.cu",],
+            ),  
         ],
     )

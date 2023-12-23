@@ -33,6 +33,10 @@ MODEL:
         DIR_LIMIT_OFFSET: 0.0
         NUM_DIR_BINS: 2
 
+        PRE_CLS_THRESH: 0.0
+        PRE_IOU_THRESH: 0.0
+        POW: 4
+        
         ANCHOR_GENERATOR_CONFIG: [
             {
                 'class_name': 'Car',
