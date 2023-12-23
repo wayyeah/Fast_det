@@ -3,6 +3,7 @@ import numpy as np
 import torch 
 import torch.nn.functional as F
 from tqdm import tqdm
+from .bev_convRes import RepVGGBlock
 def points_to_bev(points, point_range, batch_size,size):
     x_scale_factor = size[0]/ (point_range[3] - point_range[0])
     y_scale_factor = size[1]/ (point_range[4] - point_range[1])
@@ -235,6 +236,127 @@ class CBAM_BLOCK(nn.Module):
         x = x * self.spatialattention(x)
         return x
 
+#ScConv
+class GroupBatchnorm2d(nn.Module):
+    def __init__(self, c_num: int,
+                 group_num: int = 16,
+                 eps: float = 1e-10
+                 ):
+        super(GroupBatchnorm2d, self).__init__()
+        assert c_num >= group_num
+        self.group_num = group_num
+        self.weight = nn.Parameter(torch.randn(c_num, 1, 1))
+        self.bias = nn.Parameter(torch.zeros(c_num, 1, 1))
+        self.eps = eps
+ 
+    def forward(self, x):
+        N, C, H, W = x.size()
+        x = x.view(N, self.group_num, -1)
+        mean = x.mean(dim=2, keepdim=True)
+        std = x.std(dim=2, keepdim=True)
+        x = (x - mean) / (std + self.eps)
+        x = x.view(N, C, H, W)
+        return x * self.weight + self.bias
+ 
+ 
+class SRU(nn.Module):
+    def __init__(self,
+                 oup_channels: int,
+                 group_num: int = 16,
+                 gate_treshold: float = 0.5,
+                 torch_gn: bool = True
+                 ):
+        super().__init__()
+ 
+        self.gn = nn.GroupNorm(num_channels=oup_channels, num_groups=group_num) if torch_gn else GroupBatchnorm2d(
+            c_num=oup_channels, group_num=group_num)
+        self.gate_treshold = gate_treshold
+        self.sigomid = nn.Sigmoid()
+ 
+    def forward(self, x):
+        gn_x = self.gn(x)
+        w_gamma = self.gn.weight / sum(self.gn.weight)
+        w_gamma = w_gamma.view(1, -1, 1, 1)
+        reweigts = self.sigomid(gn_x * w_gamma)
+        # Gate
+        w1 = torch.where(reweigts > self.gate_treshold, torch.ones_like(reweigts), reweigts)  # 大于门限值的设为1，否则保留原值
+        w2 = torch.where(reweigts > self.gate_treshold, torch.zeros_like(reweigts), reweigts)  # 大于门限值的设为0，否则保留原值
+        x_1 = w1 * x
+        x_2 = w2 * x
+        y = self.reconstruct(x_1, x_2)
+        return y
+ 
+    def reconstruct(self, x_1, x_2):
+        x_11, x_12 = torch.split(x_1, x_1.size(1) // 2, dim=1)
+        x_21, x_22 = torch.split(x_2, x_2.size(1) // 2, dim=1)
+        return torch.cat([x_11 + x_22, x_12 + x_21], dim=1)
+ 
+ 
+class CRU(nn.Module):
+    '''
+    alpha: 0<alpha<1
+    '''
+ 
+    def __init__(self,
+                 op_channel: int,
+                 alpha: float = 1 / 2,
+                 squeeze_radio: int = 2,
+                 group_size: int = 2,
+                 group_kernel_size: int = 3,
+                 ):
+        super().__init__()
+        self.up_channel = up_channel = int(alpha * op_channel)
+        self.low_channel = low_channel = op_channel - up_channel
+        self.squeeze1 = nn.Conv2d(up_channel, up_channel // squeeze_radio, kernel_size=1, bias=False)
+        self.squeeze2 = nn.Conv2d(low_channel, low_channel // squeeze_radio, kernel_size=1, bias=False)
+        # up
+        self.GWC = nn.Conv2d(up_channel // squeeze_radio, op_channel, kernel_size=group_kernel_size, stride=1,
+                             padding=group_kernel_size // 2, groups=group_size)
+        self.PWC1 = nn.Conv2d(up_channel // squeeze_radio, op_channel, kernel_size=1, bias=False)
+        # low
+        self.PWC2 = nn.Conv2d(low_channel // squeeze_radio, op_channel - low_channel // squeeze_radio, kernel_size=1,
+                              bias=False)
+        self.advavg = nn.AdaptiveAvgPool2d(1)
+ 
+    def forward(self, x):
+        # Split
+        up, low = torch.split(x, [self.up_channel, self.low_channel], dim=1)
+        up, low = self.squeeze1(up), self.squeeze2(low)
+        # Transform
+        Y1 = self.GWC(up) + self.PWC1(up)
+        Y2 = torch.cat([self.PWC2(low), low], dim=1)
+        # Fuse
+        out = torch.cat([Y1, Y2], dim=1)
+        out = F.softmax(self.advavg(out), dim=1) * out
+        out1, out2 = torch.split(out, out.size(1) // 2, dim=1)
+        return out1 + out2
+ 
+ 
+class ScConv(nn.Module):
+    def __init__(self,
+                 op_channel: int,
+                 group_num: int = 4,
+                 gate_treshold: float = 0.5,
+                 alpha: float = 1 / 2,
+                 squeeze_radio: int = 2,
+                 group_size: int = 2,
+                 group_kernel_size: int = 3,
+                 ):
+        super().__init__()
+        self.SRU = SRU(op_channel,
+                       group_num=group_num,
+                       gate_treshold=gate_treshold)
+        self.CRU = CRU(op_channel,
+                       alpha=alpha,
+                       squeeze_radio=squeeze_radio,
+                       group_size=group_size,
+                       group_kernel_size=group_kernel_size)
+ 
+    def forward(self, x):
+        x = self.SRU(x)
+        x = self.CRU(x)
+        return x
+
 
 
 class BEVConvS(nn.Module):
@@ -254,7 +376,6 @@ class BEVConvS(nn.Module):
             nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
-            # Depthwise separable convolution
             DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
@@ -386,16 +507,20 @@ class BEVConvSEV2(nn.Module):
         self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
         self.size=self.model_cfg.SIZE
-        self.conv_layers = nn.Sequential(
+    
             # Existing layers
+        if self.training:
+            deploy=False
+        else:
+            deploy=True
+        self.conv_layers = nn.Sequential(
             nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
-            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
+            RepVGGBlock(in_channels=8, out_channels=16, kernel_size=3, stride=2, padding=1,deploy=deploy),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            SE(16),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
             DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
@@ -405,7 +530,9 @@ class BEVConvSEV2(nn.Module):
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
-        )
+        )    
+       
+        
     def forward(self, batch_dict):
         """
         Args:
@@ -418,37 +545,13 @@ class BEVConvSEV2(nn.Module):
         """
         bev_combined=points_to_bevs_two(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
         batch_dict['bev'] = bev_combined
-        """ import numpy as np
-        np.save('/mnt/16THDD/yw/Fast_det/bev.npy',bev_combined.cpu().numpy())
-        np.save('/mnt/16THDD/yw/Fast_det/points.npy',batch_dict['points'].cpu().numpy())
-        exit() """
-        for i, layer in enumerate(self.conv_layers):
-            bev_combined = layer( bev_combined)
-            if i==2:
-                x_conv1=bev_combined
-            if i==6:
-                x_conv2=bev_combined
-            if i==13:
-                x_conv3=bev_combined
-            if i==14:
-                x_conv4=bev_combined
+        if(self.training==False):
+            self.conv_layers[0].switch_to_deploy()
+            self.conv_layers[1].switch_to_deploy()
+            self.conv_layers[2].switch_to_deploy()
+        bev_combined=self.conv_layers(bev_combined)
         batch_dict['spatial_features'] = (bev_combined)
-        batch_dict.update({
-            'multi_scale_2d_features': {
-                'x_conv1': x_conv1,
-                'x_conv2': x_conv2,
-                'x_conv3': x_conv3,
-                'x_conv4': bev_combined,
-            }
-        })
-        batch_dict.update({
-            'multi_scale_2d_strides': {
-                'x_conv1': 1,
-                'x_conv2': 2,
-                'x_conv3': 4,
-                'x_conv4': 8,
-            }
-        })
+        
         return batch_dict
 
 class BEVConvSEV3(nn.Module):

@@ -11,7 +11,7 @@ MODEL:
 
 
     MAP_TO_BEV:
-        NAME: BEVConvSEV2
+        NAME: BEVConvS
         NUM_BEV_FEATURES: 32
         POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
         SIZE : [1408,1600]
@@ -25,7 +25,7 @@ MODEL:
         NUM_UPSAMPLE_FILTERS: [256, 256]
 
     DENSE_HEAD:
-        NAME: AnchorHeadRDIoU_3CAT
+        NAME: AnchorHeadSingleIoU
         CLASS_AGNOSTIC: False
 
         USE_DIRECTION_CLASSIFIER: True
@@ -46,8 +46,7 @@ MODEL:
             },
             
         ]
-        REWEIGHT: 
-            TYPE: 0
+
         TARGET_ASSIGNER_CONFIG:
             NAME: AxisAlignedTargetAssigner
             POS_FRACTION: -1.0
@@ -55,18 +54,18 @@ MODEL:
             NORM_BY_NUM_EXAMPLES: False
             MATCH_HEIGHT: False
             BOX_CODER: ResidualCoder
-    
 
         LOSS_CONFIG:
             LOSS_WEIGHTS: {
                 'cls_weight': 1.0,
                 'loc_weight': 2.0,
-                'dir_weight': 0.2
+                'dir_weight': 0.2,
+                'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
             }
 
     POST_PROCESSING:
         RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
-        SCORE_THRESH: 0.3
+        SCORE_THRESH: 0.1
         OUTPUT_RAW_SCORE: False
 
         EVAL_METRIC: kitti
@@ -80,8 +79,8 @@ MODEL:
 
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 16
-    NUM_EPOCHS: 240
+    BATCH_SIZE_PER_GPU: 4
+    NUM_EPOCHS: 120
 
     OPTIMIZER: adam_onecycle
     LR: 0.003
