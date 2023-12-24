@@ -518,10 +518,10 @@ class BEVConvSEV2(nn.Module):
             nn.BatchNorm2d(8),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
-            RepVGGBlock(in_channels=8, out_channels=8, kernel_size=3, stride=2, padding=1,deploy=deploy),
             nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
             nn.BatchNorm2d(16),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
             DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
@@ -530,6 +530,8 @@ class BEVConvSEV2(nn.Module):
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
+            RepVGGBlock(in_channels=self.num_bev_features,out_channels=self.num_bev_features,kernel_size=3, stride=1, padding=1, deploy=deploy),
+        
         )    
        
         
