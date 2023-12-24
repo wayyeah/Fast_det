@@ -3,7 +3,7 @@ from .pointpillar_scatter import PointPillarScatter, PointPillarScatter3d,PointP
 from .conv2d_collapse import Conv2DCollapse
 from .bev_conv import BEVConv,BEVConvV2
 from .bev_convU import BEVConvU
-from .bev_convRes import BEVConvRes,BEVConvVGG16,BEVRepVGG
+from .bev_convRes import BEVConvRes,BEVConvVGG16,BEVRepVGG,DetNet
 from .bev_convResH import BEVConvResH
 from .bev_convRes_TS import BEVConvResTS
 from .bev_convI import BEVConvI,BEVConvIV5
@@ -70,4 +70,5 @@ __all__ = {
     'BEVConvSEV3':BEVConvSEV3,
     'BEVConvSEV4':BEVConvSEV4,
     'BEVRepVGG':BEVRepVGG,
+    'DetNet':DetNet
 }

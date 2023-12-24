@@ -399,6 +399,7 @@ class BEVConvS(nn.Module):
         """ import numpy as np
         np.save('/mnt/16THDD/yw/Fast_det/bev.npy',bev_combined.cpu().numpy())
         np.save('/mnt/16THDD/yw/Fast_det/points.npy',batch_dict['points'].cpu().numpy())
+        np.save('/mnt/16THDD/yw/Fast_det/gt_boxes.npy',batch_dict['gt_boxes'].cpu().numpy())
         exit() """
         for i, layer in enumerate(self.conv_layers):
             bev_combined = layer( bev_combined)
@@ -672,10 +673,7 @@ class BEVConvSEV4(nn.Module):
         """
         bev_combined=points_to_bevs_two(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
         batch_dict['bev'] = bev_combined
-        """ import numpy as np
-        np.save('/mnt/16THDD/yw/Fast_det/bev.npy',bev_combined.cpu().numpy())
-        np.save('/mnt/16THDD/yw/Fast_det/points.npy',batch_dict['points'].cpu().numpy())
-        exit() """
+        
         spatial_features = self.conv_layers( bev_combined)
         batch_dict['spatial_features'] = (spatial_features)
      
