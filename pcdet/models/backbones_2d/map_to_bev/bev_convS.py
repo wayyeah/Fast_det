@@ -3,6 +3,7 @@ import numpy as np
 import torch 
 import torch.nn.functional as F
 from tqdm import tqdm
+from .bev_convRes import BottleneckA,BottleneckB
 from .bev_convRes import RepVGGBlock
 def points_to_bev(points, point_range, batch_size,size):
     x_scale_factor = size[0]/ (point_range[3] - point_range[0])
@@ -167,7 +168,11 @@ def points_to_bevs_two(points, point_range, batch_size,size):
     y_indices = y_pixel_values[mask].long()
     #z_vals = z_values_normalized[mask]
     z_vals=z_values[mask] #取消z正则化 
-    i_vals=i_values[mask]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+    i_vals=i_values[mask]           
+      
+    assert batch_indices.max() < bev.size(0)
+    assert y_indices.max() < bev.size(2)
+    assert x_indices.max() < bev.size(3)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
     bev[batch_indices, 0, y_indices, x_indices] = torch.maximum(bev[batch_indices, 0, y_indices, x_indices], z_vals)
     bev_intensity[batch_indices, 0, y_indices, x_indices] = torch.maximum(bev_intensity[batch_indices, 0, y_indices, x_indices], i_vals)
     return torch.cat([bev,bev_intensity], dim=1)  
@@ -429,6 +434,47 @@ class BEVConvS(nn.Module):
             }
         })
         return batch_dict
+
+
+class BEVConvSExport(nn.Module):
+    def __init__(self, model_cfg, **kwargs):
+        super().__init__()
+        self.model_cfg = model_cfg
+        self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
+        self.point_range=self.model_cfg.POINT_CLOUD_RANGE
+        self.size=self.model_cfg.SIZE
+        self.conv_layers = nn.Sequential(
+            # Existing layers
+            nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
+            nn.BatchNorm2d(8),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
+            nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
+            nn.BatchNorm2d(16),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
+            DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
+            nn.BatchNorm2d(self.num_bev_features),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
+        )
+    def forward(self, bev_combined):
+       
+        
+        for i, layer in enumerate(self.conv_layers):
+            bev_combined = layer( bev_combined)
+            if i==2:
+                x_conv1=bev_combined
+            if i==6:
+                x_conv2=bev_combined
+            if i==13:
+                x_conv3=bev_combined
+            if i==14:
+                x_conv4=bev_combined
+        return bev_combined
     
 class BEVConvSE(nn.Module):
     def __init__(self, model_cfg, **kwargs):
@@ -564,28 +610,30 @@ class BEVConvSEV3(nn.Module):
         self.num_bev_features = self.model_cfg.NUM_BEV_FEATURES
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
         self.size=self.model_cfg.SIZE
+        deploy=False
         self.conv_layers = nn.Sequential(
-            # Existing layers
             nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
             nn.BatchNorm2d(8),
             nn.ReLU(),
-            SE(8),
             nn.MaxPool2d(kernel_size=2, stride=2),#b*8*800*704
             nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1, groups=8),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            SE(16),
             nn.MaxPool2d(kernel_size=2, stride=2),  #b*16*400*352
-            DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
+            DepthwiseSeparableConvWithShuffle(16, 24, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(24),
+            nn.ReLU(),
+            SE(24),
+            DepthwiseSeparableConvWithShuffle(24, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
             SE(32),
-            nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
-            nn.BatchNorm2d(self.num_bev_features),
-            nn.ReLU(),
+            RepVGGBlock(in_channels=32,out_channels=self.num_bev_features,kernel_size=3, stride=1, padding=1, deploy=deploy),
             SE(32),
             nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
+        
         )
+    
     def forward(self, batch_dict):
         """
         Args:
@@ -602,6 +650,10 @@ class BEVConvSEV3(nn.Module):
         np.save('/mnt/16THDD/yw/Fast_det/bev.npy',bev_combined.cpu().numpy())
         np.save('/mnt/16THDD/yw/Fast_det/points.npy',batch_dict['points'].cpu().numpy())
         exit() """
+        if(self.training==False):
+            for module in self.conv_layers.modules():
+                if module.__class__.__name__=='RepVGGBlock':
+                    module.switch_to_deploy()
         for i, layer in enumerate(self.conv_layers):
             bev_combined = layer( bev_combined)
             if i==2:

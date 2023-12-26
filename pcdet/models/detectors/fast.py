@@ -47,6 +47,24 @@ class Fast(Detector3DTemplate):
         loss = loss_rpn
         return loss, tb_dict, disp_dict
 
+ 
+class FastExport(Detector3DTemplate):
+    def __init__(self, model_cfg, num_class, dataset):
+        super().__init__(model_cfg=model_cfg, num_class=num_class, dataset=dataset)
+        self.module_list = self.build_networks()
+
+    def forward(self, x):
+        x=self.map_to_bev_module(x)
+        x=self.backbone_2d(x)
+        batch_cls_preds,batch_box_preds=self.dense_head(x)
+    
+        return batch_cls_preds,batch_box_preds
+     
+       
+        
+
+    
+ 
     
 class FastIOU(Detector3DTemplate):
     def __init__(self, model_cfg, num_class, dataset):
