@@ -9,15 +9,14 @@ from pcdet.models import load_data_to_gpu
 from pcdet.utils import common_utils
 
 from pcdet.models.backbones_2d.map_to_bev.bev_convS import points_to_bevs_two
-try:
-    import onnx
-    import onnx_tensorrt.backend as backend
-    import tensorrt as trt
-    import pycuda.driver as cuda
-    import pycuda.autoinit
-    import onnx
-except:
-    raise ImportError('Please install onnx, tensorrt, pycuda and onnx_tensorrt first.')
+
+import onnx
+import onnx_tensorrt.backend as backend
+import tensorrt as trt
+import pycuda.driver as cuda
+import pycuda.autoinit
+import onnx
+
 def statistics_info(cfg, ret_dict, metric, disp_dict):
     for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
         metric['recall_roi_%s' % str(cur_thresh)] += ret_dict.get('roi_%s' % str(cur_thresh), 0)

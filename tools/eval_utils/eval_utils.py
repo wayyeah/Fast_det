@@ -57,6 +57,7 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
     start_time = time.time()
     times={}
     count=0
+    
     for i, batch_dict in enumerate(dataloader):
         count+=1
         load_data_to_gpu(batch_dict)
@@ -65,11 +66,17 @@ def eval_one_epoch(cfg, args, model, dataloader, epoch_id, logger, dist_test=Fal
             start_time = time.time()
 
         with torch.no_grad():
-            pred_dicts, ret_dict,module_times = model(batch_dict)
-        for key in module_times:
-            if key not in times:
-                times[key]=0
-            times[key]+=module_times[key]
+            try:
+                pred_dicts, ret_dict,module_times = model(batch_dict)
+            except:
+                pred_dicts, ret_dict = model(batch_dict)
+        try:
+            for key in module_times:
+                if key not in times:
+                    times[key]=0
+                times[key]+=module_times[key]
+        except:
+            pass
         disp_dict = {}
 
         if getattr(args, 'infer_time', False):
