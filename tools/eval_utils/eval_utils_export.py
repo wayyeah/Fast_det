@@ -16,7 +16,8 @@ import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
 import onnx
-
+TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
+EXPLICIT_BATCH = 1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
 def statistics_info(cfg, ret_dict, metric, disp_dict):
     for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
         metric['recall_roi_%s' % str(cur_thresh)] += ret_dict.get('roi_%s' % str(cur_thresh), 0)
@@ -25,8 +26,56 @@ def statistics_info(cfg, ret_dict, metric, disp_dict):
     min_thresh = cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST[0]
     disp_dict['recall_%s' % str(min_thresh)] = \
         '(%d, %d) / %d' % (metric['recall_roi_%s' % str(min_thresh)], metric['recall_rcnn_%s' % str(min_thresh)], metric['gt_num'])
+def build_engine(onnx_file_path):
+    with trt.Builder(TRT_LOGGER) as builder, \
+            builder.create_network(EXPLICIT_BATCH) as network, \
+            trt.OnnxParser(network, TRT_LOGGER) as parser:
+        
+        # 创建配置对象
+        config = builder.create_builder_config()
+        config.max_workspace_size = 1 << 30  # 设置工作空间大小为 1GB
+
+        # 解析 ONNX 模型
+        with open(onnx_file_path, 'rb') as model:
+            if not parser.parse(model.read()):
+                print('ERROR: Failed to parse the ONNX file.')
+                for error in range(parser.num_errors):
+                    print(parser.get_error(error))
+                return None
+
+        # 构建和返回 CUDA 引擎
+        return builder.build_engine(network, config)
 
 
+# 分配内存
+def allocate_buffers(engine):
+    inputs = []
+    outputs = []
+    bindings = []
+    stream = cuda.Stream()
+    for binding in engine:
+        size = trt.volume(engine.get_binding_shape(binding)) * engine.max_batch_size
+        dtype = trt.nptype(engine.get_binding_dtype(binding))
+        host_mem = cuda.pagelocked_empty(size, dtype)
+        device_mem = cuda.mem_alloc(host_mem.nbytes)
+        bindings.append(int(device_mem))
+        if engine.binding_is_input(binding):
+            inputs.append({'host': host_mem, 'device': device_mem})
+        else:
+            outputs.append({'host': host_mem, 'device': device_mem})
+    return inputs, outputs, bindings, stream
+def do_inference(context, bindings, inputs, outputs, stream, batch_size=1):
+    # 将输入数据传输到 GPU
+    [cuda.memcpy_htod_async(inp['device'], inp['host'], stream) for inp in inputs]
+    
+    # 执行推理
+    context.execute_async(batch_size=batch_size, bindings=bindings, stream_handle=stream.handle)
+    
+    # 将预测结果从 GPU 传回 CPU
+    [cuda.memcpy_dtoh_async(out['host'], out['device'], stream) for out in outputs]
+    stream.synchronize()
+
+    return [out['host'] for out in outputs]
 def eval_one_epoch_test(cfg, args, model, dataloader, epoch_id, logger, dist_test=False, result_dir=None):
     result_dir.mkdir(parents=True, exist_ok=True)
 
@@ -179,18 +228,9 @@ def eval_one_epoch_trt(cfg, args, model, dataloader, epoch_id, logger, dist_test
     final_output_dir = result_dir / 'final_result' / 'data'
     if args.save_to_file:
         final_output_dir.mkdir(parents=True, exist_ok=True)
-
-    metric = {
-        'gt_num': 0,
-    }
-    for cur_thresh in cfg.MODEL.POST_PROCESSING.RECALL_THRESH_LIST:
-        metric['recall_roi_%s' % str(cur_thresh)] = 0
-        metric['recall_rcnn_%s' % str(cur_thresh)] = 0
-
     dataset = dataloader.dataset
     class_names = dataset.class_names
     det_annos = []
-
     if getattr(args, 'infer_time', False):
         start_iter = int(len(dataloader) * 0.1)
         infer_time_meter = common_utils.AverageMeter()
@@ -214,7 +254,11 @@ def eval_one_epoch_trt(cfg, args, model, dataloader, epoch_id, logger, dist_test
     model = onnx.load("/data/xqm/click2box/Fast_det/fastDet.onnx")
     
     
+   
     
+    engine = build_engine("/data/xqm/click2box/Fast_det/fastDet.onnx")
+    context = engine.create_execution_context()
+    inputs, outputs, bindings, stream = allocate_buffers(engine)
     
     for i, batch_dict in enumerate(dataloader):
         count+=1
@@ -222,14 +266,11 @@ def eval_one_epoch_trt(cfg, args, model, dataloader, epoch_id, logger, dist_test
         if getattr(args, 'infer_time', False):
             start_time = time.time()
         input=points_to_bevs_two(batch_size=1,points=batch_dict['points'],point_range=[0, -40, -3, 70.4, 40, 1],size=[1408,1600])
-        
-        
-        
-        
-        
-        
-        batch_cls_preds = torch.tensor(output_data[0]).cuda()
-        batch_box_preds = torch.tensor(output_data[1]).cuda()
+        numpy_input = input.cpu().numpy()
+        cuda.memcpy_htod_async(inputs[0]['device'], numpy_input, stream)
+        output_data = do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
+        batch_cls_preds = torch.tensor(output_data[0]).cuda().reshape(1,35200,-1)
+        batch_box_preds = torch.tensor(output_data[1]).cuda().reshape(1,35200,-1)
         src_box_preds = batch_box_preds[0]
         src_cls_preds =batch_cls_preds[0]
         cls_preds = src_cls_preds

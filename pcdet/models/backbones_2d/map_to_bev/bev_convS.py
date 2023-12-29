@@ -456,16 +456,13 @@ class BEVConvSExport(nn.Module):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             SE(32),
-            RepVGGBlock(in_channels=32,out_channels=self.num_bev_features,kernel_size=3, stride=1, padding=1, deploy=deploy),
+            RepVGGBlock(in_channels=32,out_channels=self.num_bev_features,kernel_size=3, stride=1, padding=1, deploy=False),
             nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
         )
     def forward(self, bev_combined):
-        for module in self.conv_layers.modules():
-            if module.__class__.__name__=='RepVGGBlock':
-                module.switch_to_deploy()
         return self.conv_layers(bev_combined)
     
 class BEVConvSE(nn.Module):
