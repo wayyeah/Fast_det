@@ -444,7 +444,6 @@ class BEVConvSExport(nn.Module):
         self.point_range=self.model_cfg.POINT_CLOUD_RANGE
         self.size=self.model_cfg.SIZE
         self.conv_layers = nn.Sequential(
-            # Existing layers
             nn.Conv2d(2, 8, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
             nn.BatchNorm2d(8),
             nn.ReLU(),
@@ -456,25 +455,18 @@ class BEVConvSExport(nn.Module):
             DepthwiseSeparableConvWithShuffle(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(),
+            SE(32),
+            RepVGGBlock(in_channels=32,out_channels=self.num_bev_features,kernel_size=3, stride=1, padding=1, deploy=deploy),
             nn.Conv2d(32, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
         )
     def forward(self, bev_combined):
-       
-        
-        for i, layer in enumerate(self.conv_layers):
-            bev_combined = layer( bev_combined)
-            if i==2:
-                x_conv1=bev_combined
-            if i==6:
-                x_conv2=bev_combined
-            if i==13:
-                x_conv3=bev_combined
-            if i==14:
-                x_conv4=bev_combined
-        return bev_combined
+        for module in self.conv_layers.modules():
+            if module.__class__.__name__=='RepVGGBlock':
+                module.switch_to_deploy()
+        return self.conv_layers(bev_combined)
     
 class BEVConvSE(nn.Module):
     def __init__(self, model_cfg, **kwargs):

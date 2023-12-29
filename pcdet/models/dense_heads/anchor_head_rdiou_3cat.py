@@ -617,52 +617,11 @@ class AnchorHeadRDIoU_3CATExport(AnchorHeadTemplate):
         
 
       
-        batch_cls_preds, batch_box_preds,dir_cls_preds = self.generate_predicted_boxes(
+        batch_cls_preds, batch_box_preds= self.generate_predicted_boxes(
                 batch_size=1,
                 cls_preds=cls_preds, box_preds=box_preds, dir_cls_preds=dir_cls_preds
             )
             
 
-        return batch_cls_preds,batch_box_preds,dir_cls_preds
-    def generate_predicted_boxes(self, batch_size, cls_preds, box_preds, dir_cls_preds=None):
-        """
-        Args:
-            batch_size:
-            cls_preds: (N, H, W, C1)
-            box_preds: (N, H, W, C2)
-            dir_cls_preds: (N, H, W, C3)
-
-        Returns:
-            batch_cls_preds: (B, num_boxes, num_classes)
-            batch_box_preds: (B, num_boxes, 7+C)
-
-        """
-        if isinstance(self.anchors, list):
-            if self.use_multihead:
-                anchors = torch.cat([anchor.permute(3, 4, 0, 1, 2, 5).contiguous().view(-1, anchor.shape[-1])
-                                     for anchor in self.anchors], dim=0)
-            else:
-                anchors = torch.cat(self.anchors, dim=-3)
-        else:
-            anchors = self.anchors
-        num_anchors = anchors.view(-1, anchors.shape[-1]).shape[0]
-        batch_anchors = anchors.view(1, -1, anchors.shape[-1]).repeat(batch_size, 1, 1)
-        batch_cls_preds = cls_preds.view(batch_size, num_anchors, -1).float() \
-            if not isinstance(cls_preds, list) else cls_preds
-        batch_box_preds = box_preds.view(batch_size, num_anchors, -1) if not isinstance(box_preds, list) \
-            else torch.cat(box_preds, dim=1).view(batch_size, num_anchors, -1)
-        batch_box_preds = self.box_coder.decode_torch(batch_box_preds, batch_anchors)
-
-        if dir_cls_preds is not None:
-            dir_offset = self.model_cfg.DIR_OFFSET
-            dir_limit_offset = self.model_cfg.DIR_LIMIT_OFFSET
-            dir_cls_preds = dir_cls_preds.view(batch_size, num_anchors, -1) if not isinstance(dir_cls_preds, list) \
-                else torch.cat(dir_cls_preds, dim=1).view(batch_size, num_anchors, -1)
-            
-
-        """ if isinstance(self.box_coder, box_coder_utils.PreviousResidualDecoder):
-            batch_box_preds[..., 6] = common_utils.limit_period(
-                -(batch_box_preds[..., 6] + np.pi / 2), offset=0.5, period=np.pi * 2
-            ) """
-
-        return batch_cls_preds, batch_box_preds,dir_cls_preds
+        return batch_cls_preds,batch_box_preds
+    

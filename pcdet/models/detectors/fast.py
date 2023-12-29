@@ -56,9 +56,9 @@ class FastExport(Detector3DTemplate):
     def forward(self, x):
         x=self.map_to_bev_module(x)
         x=self.backbone_2d(x)
-        batch_cls_preds,batch_box_preds,batch_dir_preds=self.dense_head(x)
+        batch_cls_preds,batch_box_preds=self.dense_head(x)
     
-        return batch_cls_preds,batch_box_preds,batch_dir_preds
+        return batch_cls_preds,batch_box_preds
      
        
         
