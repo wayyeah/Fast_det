@@ -388,7 +388,8 @@ class WaymoDataset(DatasetTemplate):
             if self.dataset_cfg.get('TRAIN_WITH_SPEED', False):
                 assert gt_boxes_lidar.shape[-1] == 9
             else:
-                gt_boxes_lidar = gt_boxes_lidar.reshape(-1,7)[:, 0:7]
+                
+                gt_boxes_lidar = gt_boxes_lidar.reshape(-1,9)[:, 0:7]
 
             if self.training and self.dataset_cfg.get('FILTER_EMPTY_BOXES_FOR_TRAIN', False):
                 mask = (annos['num_points_in_gt'] > 0)  # filter empty boxes
