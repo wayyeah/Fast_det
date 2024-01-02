@@ -43,6 +43,12 @@ class NuScenesDataset(DatasetTemplate):
                 nuscenes_infos.extend(infos)
 
         self.infos.extend(nuscenes_infos)
+        if self.dataset_cfg.SAMPLED_INTERVAL[mode] > 1:
+            sampled_nuScenes_infos = []
+            for k in range(0, len(self.infos), self.dataset_cfg.SAMPLED_INTERVAL[mode]):
+                sampled_nuScenes_infos.append(self.infos[k])
+            self.infos = sampled_nuScenes_infos
+            self.logger.info('Total sampled samples for  NuScenes dataset: %d' % len(self.infos))
         self.logger.info('Total samples for NuScenes dataset: %d' % (len(nuscenes_infos)))
 
     def balanced_infos_resampling(self, infos):
