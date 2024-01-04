@@ -30,11 +30,12 @@ def build_engine(onnx_file_path):
     with trt.Builder(TRT_LOGGER) as builder, \
             builder.create_network(EXPLICIT_BATCH) as network, \
             trt.OnnxParser(network, TRT_LOGGER) as parser:
-        
         # 创建配置对象
         config = builder.create_builder_config()
         config.max_workspace_size = 1 << 30  # 设置工作空间大小为 1GB
-
+        if builder.platform_has_fast_fp16:
+            print("enable fp16!!!")
+            config.set_flag(trt.BuilderFlag.FP16)
         # 解析 ONNX 模型
         with open(onnx_file_path, 'rb') as model:
             if not parser.parse(model.read()):
@@ -66,7 +67,7 @@ def allocate_buffers(engine):
     return inputs, outputs, bindings, stream
 def do_inference(context, bindings, inputs, outputs, stream, batch_size=1):
     # 将输入数据传输到 GPU
-    [cuda.memcpy_htod_async(inp['device'], inp['host'], stream) for inp in inputs]
+    #[cuda.memcpy_htod_async(inp['device'], inp['host'], stream) for inp in inputs]
     
     # 执行推理
     context.execute_async(batch_size=batch_size, bindings=bindings, stream_handle=stream.handle)
@@ -252,14 +253,9 @@ def eval_one_epoch_trt(cfg, args, model, dataloader, epoch_id, logger, dist_test
     times={}
     count=0
     model = onnx.load("/data/xqm/click2box/Fast_det/fastDet.onnx")
-    
-    
-   
-    
     engine = build_engine("/data/xqm/click2box/Fast_det/fastDet.onnx")
     context = engine.create_execution_context()
     inputs, outputs, bindings, stream = allocate_buffers(engine)
-    
     for i, batch_dict in enumerate(dataloader):
         count+=1
         load_data_to_gpu(batch_dict)
@@ -269,8 +265,8 @@ def eval_one_epoch_trt(cfg, args, model, dataloader, epoch_id, logger, dist_test
         numpy_input = input.cpu().numpy()
         cuda.memcpy_htod_async(inputs[0]['device'], numpy_input, stream)
         output_data = do_inference(context, bindings=bindings, inputs=inputs, outputs=outputs, stream=stream)
-        batch_cls_preds = torch.tensor(output_data[0]).cuda().reshape(1,35200,-1)
-        batch_box_preds = torch.tensor(output_data[1]).cuda().reshape(1,35200,-1)
+        batch_cls_preds = torch.tensor(output_data[0]).cuda().reshape(1,-1,3)
+        batch_box_preds = torch.tensor(output_data[1]).cuda().reshape(1,-1,7)
         src_box_preds = batch_box_preds[0]
         src_cls_preds =batch_cls_preds[0]
         cls_preds = src_cls_preds
@@ -295,9 +291,6 @@ def eval_one_epoch_trt(cfg, args, model, dataloader, epoch_id, logger, dist_test
             'pred_labels': final_labels
         }
         pred_dicts.append(record_dict)
-        
-       
-        
         disp_dict = {}
 
         if getattr(args, 'infer_time', False):

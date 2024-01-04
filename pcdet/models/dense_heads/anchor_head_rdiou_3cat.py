@@ -272,8 +272,8 @@ class AnchorHeadRDIoU_3CAT(AnchorHeadTemplate):
                 rdiou_loss_n = torch.clamp(rdiou_loss_n,min=-1.0,max = 1.0)
                 rdiou_loss_m=1-rdiou_loss_n
                 weight=rdiou_loss_m/(1-rdiou)
-                weight = torch.where(torch.isinf(weight)  , torch.tensor(1.0), weight)
-                weight=torch.where(torch.isnan(weight), torch.tensor(1.0), weight)
+                weight = torch.where(torch.isinf(weight)  , torch.tensor(1.0).cuda(), weight)
+                weight=torch.where(torch.isnan(weight), torch.tensor(1.0).cuda(), weight)
                 rdiou_loss_src = rdiou_loss_src*weight 
                 #print(rdiou_loss_src.sum())
                 # mask=rdiou>=0.7
