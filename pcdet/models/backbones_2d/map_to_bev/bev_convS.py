@@ -702,12 +702,13 @@ class BEVConvSEV4Waymo(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2), #b*n*200*176
-            DepthwiseSeparableConvWithShuffle(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), #b*n*200*176
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            SE(64),
-            RepVGGBlock(in_channels=64,out_channels=64,kernel_size=3, stride=1, padding=1, deploy=deploy),
-            nn.Conv2d(64, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*n*400*352
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), #b*n*200*176
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, self.num_bev_features, kernel_size=3, stride=1, padding=1), #b*8*1600*1408
             nn.BatchNorm2d(self.num_bev_features),
             nn.ReLU(),
         )    

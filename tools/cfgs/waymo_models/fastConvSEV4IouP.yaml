@@ -11,8 +11,8 @@ MODEL:
 
 
     MAP_TO_BEV:
-        NAME: BEVConvSEV4Waymo
-        NUM_BEV_FEATURES: 128
+        NAME: BEVConvSEV4
+        NUM_BEV_FEATURES: 32
         POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
         SIZE : [1504,1504]
     BACKBONE_2D:
@@ -25,7 +25,7 @@ MODEL:
         NUM_UPSAMPLE_FILTERS: [256, 256]
 
     DENSE_HEAD:
-        NAME: AnchorHeadSingleIoU
+        NAME: AnchorHeadSingle
         CLASS_AGNOSTIC: False
 
         USE_DIRECTION_CLASSIFIER: True
@@ -33,10 +33,6 @@ MODEL:
         DIR_LIMIT_OFFSET: 0.0
         NUM_DIR_BINS: 2
 
-        PRE_CLS_THRESH: 0.0
-        PRE_IOU_THRESH: 0.0
-        POW: 4
-        
         ANCHOR_GENERATOR_CONFIG: [
             {
                 'class_name': 'Vehicle',
@@ -88,7 +84,7 @@ MODEL:
 
     POST_PROCESSING:
         RECALL_THRESH_LIST: [ 0.3, 0.5, 0.7 ]
-        SCORE_THRESH: 0.1
+        SCORE_THRESH: 0.2
         OUTPUT_RAW_SCORE: False
 
         EVAL_METRIC: waymo
@@ -96,7 +92,7 @@ MODEL:
         NMS_CONFIG:
             MULTI_CLASSES_NMS: False
             NMS_TYPE: nms_gpu
-            NMS_THRESH: 0.01
+            NMS_THRESH: 0.7
             NMS_PRE_MAXSIZE: 4096
             NMS_POST_MAXSIZE: 500
 
