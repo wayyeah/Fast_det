@@ -697,7 +697,7 @@ class BEVConvSEV4Waymo(nn.Module):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             SE(32),
-            RepVGGBlock(in_channels=32,out_channels=self.num_bev_features,kernel_size=3, stride=1, padding=1, deploy=deploy),
+            RepVGGBlock(in_channels=32,out_channels=32,kernel_size=3, stride=1, padding=1, deploy=deploy),
             nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1), #b*n*400*352
             nn.BatchNorm2d(64),
             nn.ReLU(),
