@@ -32,8 +32,8 @@ MODEL:
 
 
     MAP_TO_BEV:
-        NAME: BEVConvSEV4
-        NUM_BEV_FEATURES: 32
+        NAME: BEVConvSEV4Waymo
+        NUM_BEV_FEATURES: 128
         POINT_CLOUD_RANGE:  [-51.2, -51.2, -5.0, 51.2, 51.2, 3.0]
         SIZE : [2048,2048]
     BACKBONE_2D:

@@ -71,5 +71,6 @@ __all__ = {
     'BEVConvSEV3':BEVConvSEV3,
     'BEVConvSEV4':BEVConvSEV4,
     'BEVRepVGG':BEVRepVGG,
-    'DetNet':DetNet
+    'DetNet':DetNet,
+    'BEVConvSEV4Waymo':BEVConvSEV4Waymo,
 }
