@@ -363,7 +363,6 @@ class ScConv(nn.Module):
         return x
 
 
-
 class BEVConvS(nn.Module):
     def __init__(self, model_cfg, **kwargs):
         super().__init__()

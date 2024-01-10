@@ -14,6 +14,7 @@ from .bev_convS import BEVConvS,BEVConvSV2,BEVConvSV3,BEVConvSV4,BEVConvSV5,BEVC
 from .bev_convFast import BEVConvFast,BEVConvFastV3
 from .bev_kd import BEVKD,BEVKDV2
 from .bev_convS import BEVConvSE,BEVConvSEV2,BEVConvCBAM,BEVConvSEV3,BEVConvSEV4,BEVConvSExport,BEVConvSEV4Waymo
+from .bev_DSR import BEVDSR
 
 __all__ = {
     'HeightCompression': HeightCompression,
@@ -73,4 +74,5 @@ __all__ = {
     'BEVRepVGG':BEVRepVGG,
     'DetNet':DetNet,
     'BEVConvSEV4Waymo':BEVConvSEV4Waymo,
+    'BEVDSR':BEVDSR,
 }
