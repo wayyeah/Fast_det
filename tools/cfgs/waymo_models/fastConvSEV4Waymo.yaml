@@ -12,7 +12,7 @@ MODEL:
 
     MAP_TO_BEV:
         NAME: BEVConvSEV4Waymo
-        NUM_BEV_FEATURES: 64
+        NUM_BEV_FEATURES: 256
         POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
         SIZE : [1504,1504]
     BACKBONE_2D:
@@ -23,7 +23,6 @@ MODEL:
         NUM_FILTERS: [128, 256]
         UPSAMPLE_STRIDES: [1, 2]
         NUM_UPSAMPLE_FILTERS: [256, 256]
-
     DENSE_HEAD:
         NAME: AnchorHeadSingle
         CLASS_AGNOSTIC: False
@@ -92,14 +91,14 @@ MODEL:
         NMS_CONFIG:
             MULTI_CLASSES_NMS: False
             NMS_TYPE: nms_gpu
-            NMS_THRESH: 0.7
+            NMS_THRESH: 0.2
             NMS_PRE_MAXSIZE: 4096
             NMS_POST_MAXSIZE: 500
 
 
 OPTIMIZATION:
     BATCH_SIZE_PER_GPU: 4
-    NUM_EPOCHS: 60
+    NUM_EPOCHS: 30
 
     OPTIMIZER: adam_onecycle
     LR: 0.003
