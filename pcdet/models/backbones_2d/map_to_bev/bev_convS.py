@@ -398,6 +398,16 @@ class BEVConvS(nn.Module):
                 spatial_features:
 
         """
+        """ bev_shape=bev_shape = (batch_dict['batch_size'], 1600,1408 ,4)
+        bev_combined = torch.zeros(bev_shape, dtype=torch.float32, device=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        # 提取批处理大小、高度、宽度的索引
+        batch_sizes = batch_dict['voxel_coords'][:, 0].long()
+        hs = batch_dict['voxel_coords'][:, 2].long()
+        ws = batch_dict['voxel_coords'][:, 3].long()
+        # 使用这些索引一次性更新bev_combined
+        bev_combined[batch_sizes, hs, ws] = batch_dict['voxel_features']
+        # 调整维度顺序
+        bev_combined = bev_combined.permute(0, 3, 1, 2) """
         bev_combined=points_to_bevs_two(batch_dict['points'],self.point_range,batch_dict['batch_size'],self.size)
         batch_dict['bev'] = bev_combined
         """ import numpy as np
