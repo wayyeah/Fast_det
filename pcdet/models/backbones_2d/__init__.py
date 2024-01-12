@@ -2,7 +2,7 @@ from .base_bev_backbone import BaseBEVBackbone, BaseBEVBackboneV1, BaseBEVResBac
 from .base_bev_backbone_TS import BaseBEVBackboneTS
 from .uni_bev_backbone import UniBEVBackbone, UniBEVBackboneV2, UniBEVBackboneV3, UniBEVBackboneV4
 from .aspp import ASPPNeck
-from .base_bev_backbone import BaseBEVBackboneCMAB
+from .base_bev_backbone import BaseBEVBackboneCBAM
 __all__ = {
     'BaseBEVBackbone': BaseBEVBackbone,
     'BaseBEVBackboneV1': BaseBEVBackboneV1,
@@ -16,5 +16,4 @@ __all__ = {
     'BaseBEVBackboneXception': BaseBEVBackboneXception,
     'ASPPNeck': ASPPNeck,
     'BaseBEVBackboneExport': BaseBEVBackboneExport,
-    'BaseBEVBackboneCMAB': BaseBEVBackboneCMAB,
 }

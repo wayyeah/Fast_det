@@ -1,7 +1,27 @@
-CLASS_NAMES: ['Car', 'Pedestrian', 'Cyclist']
+CLASS_NAMES: ['Vehicle', 'Pedestrian', 'Cyclist']
 
 DATA_CONFIG:
-    _BASE_CONFIG_: cfgs/dataset_configs/kitti_dataset.yaml
+    _BASE_CONFIG_: cfgs/dataset_configs/waymo_dataset.yaml
+
+    POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
+    DATA_PROCESSOR:
+        -   NAME: mask_points_and_boxes_outside_range
+            REMOVE_OUTSIDE_BOXES: True
+
+        -   NAME: shuffle_points
+            SHUFFLE_ENABLED: {
+                'train': True,
+                'test': True
+            }
+
+        -   NAME: transform_points_to_voxels
+            VOXEL_SIZE: [ 0.05, 0.05, 6.0 ]
+            MAX_POINTS_PER_VOXEL: 20
+            MAX_NUMBER_OF_VOXELS: {
+                'train': 150000,
+                'test': 150000
+            }
+
 
 MODEL:
     NAME: Fast
@@ -11,12 +31,12 @@ MODEL:
 
 
     MAP_TO_BEV:
-        NAME: BEVConvSEV4
-        NUM_BEV_FEATURES: 32
-        POINT_CLOUD_RANGE: [0, -40, -3, 70.4, 40, 1]
-        SIZE : [1408,1600]
+        NAME: BEVConvVGG16
+        NUM_BEV_FEATURES: 256
+        POINT_CLOUD_RANGE: [-75.2, -75.2, -2, 75.2, 75.2, 4]
+        SIZE : [3008,3008]
     BACKBONE_2D:
-        NAME: BaseBEVBackboneCBAM
+        NAME: BaseBEVBackbone
 
         LAYER_NUMS: [5, 5]
         LAYER_STRIDES: [1, 2]
@@ -35,20 +55,20 @@ MODEL:
 
         ANCHOR_GENERATOR_CONFIG: [
             {
-                'class_name': 'Car',
-                'anchor_sizes': [[3.9, 1.6, 1.56]],
+                'class_name': 'Vehicle',
+                'anchor_sizes': [[4.7, 2.1, 1.7]],
                 'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [-1.78],
+                'anchor_bottom_heights': [0],
                 'align_center': False,
                 'feature_map_stride': 8,
-                'matched_threshold': 0.6,
-                'unmatched_threshold': 0.45
+                'matched_threshold': 0.55,
+                'unmatched_threshold': 0.4
             },
             {
                 'class_name': 'Pedestrian',
-                'anchor_sizes': [[0.8, 0.6, 1.73]],
+                'anchor_sizes': [[0.91, 0.86, 1.73]],
                 'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [-0.6],
+                'anchor_bottom_heights': [0],
                 'align_center': False,
                 'feature_map_stride': 8,
                 'matched_threshold': 0.5,
@@ -56,9 +76,9 @@ MODEL:
             },
             {
                 'class_name': 'Cyclist',
-                'anchor_sizes': [[1.76, 0.6, 1.73]],
+                'anchor_sizes': [[1.78, 0.84, 1.78]],
                 'anchor_rotations': [0, 1.57],
-                'anchor_bottom_heights': [-0.6],
+                'anchor_bottom_heights': [0],
                 'align_center': False,
                 'feature_map_stride': 8,
                 'matched_threshold': 0.5,
@@ -84,22 +104,22 @@ MODEL:
 
     POST_PROCESSING:
         RECALL_THRESH_LIST: [0.3, 0.5, 0.7]
-        SCORE_THRESH: 0.3
+        SCORE_THRESH: 0.1
         OUTPUT_RAW_SCORE: False
 
-        EVAL_METRIC: kitti
+        EVAL_METRIC: waymo
 
         NMS_CONFIG:
             MULTI_CLASSES_NMS: False
             NMS_TYPE: nms_gpu
-            NMS_THRESH: 0.01
+            NMS_THRESH: 0.2
             NMS_PRE_MAXSIZE: 4096
             NMS_POST_MAXSIZE: 500
 
 
 OPTIMIZATION:
-    BATCH_SIZE_PER_GPU: 4
-    NUM_EPOCHS: 80
+    BATCH_SIZE_PER_GPU: 2
+    NUM_EPOCHS: 30
 
     OPTIMIZER: adam_onecycle
     LR: 0.003
@@ -117,6 +137,7 @@ OPTIMIZATION:
     WARMUP_EPOCH: 1
 
     GRAD_NORM_CLIP: 10
+
 HOOK:
     DisableAugmentationHook:
         DISABLE_AUG_LIST: ['gt_sampling']
